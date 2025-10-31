@@ -7,6 +7,7 @@ namespace Tourze\FileStorageBundle\DependencyInjection\Compiler;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
+use Tourze\AccessTokenBundle\Service\AccessTokenHandler;
 
 class SecurityFirewallCompilerPass implements CompilerPassInterface
 {
@@ -116,7 +117,7 @@ class SecurityFirewallCompilerPass implements CompilerPassInterface
             '            provider: app_user_provider' . PHP_EOL .
             '            stateless: true' . PHP_EOL .
             '            access_token:' . PHP_EOL .
-            '                token_handler: Tourze\AccessTokenBundle\Service\AccessTokenHandler' . PHP_EOL .
+            '                token_handler: ' . AccessTokenHandler::class . PHP_EOL .
             '                token_extractors:' . PHP_EOL .
             '                    - \'header\'' . PHP_EOL .
             '                    - \'query_string\'';

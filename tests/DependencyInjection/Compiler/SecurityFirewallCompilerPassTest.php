@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
+use Tourze\AccessTokenBundle\Service\AccessTokenHandler;
 use Tourze\FileStorageBundle\DependencyInjection\Compiler\SecurityFirewallCompilerPass;
 
 /**
@@ -126,7 +127,7 @@ final class SecurityFirewallCompilerPassTest extends TestCase
                     'pattern' => '^/upload/member',
                     'stateless' => true,
                     'access_token' => [
-                        'token_handler' => 'Tourze\AccessTokenBundle\Service\AccessTokenHandler',
+                        'token_handler' => AccessTokenHandler::class,
                         'token_extractors' => ['header', 'query_string'],
                     ],
                 ],
@@ -207,7 +208,7 @@ final class SecurityFirewallCompilerPassTest extends TestCase
                     'provider' => 'app_user_provider',
                     'stateless' => true,
                     'access_token' => [
-                        'token_handler' => 'Tourze\AccessTokenBundle\Service\AccessTokenHandler',
+                        'token_handler' => AccessTokenHandler::class,
                         'token_extractors' => ['header', 'query_string'],
                     ],
                 ],
