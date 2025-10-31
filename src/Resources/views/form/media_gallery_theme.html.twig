@@ -1,0 +1,336 @@
+{% block media_gallery_widget %}
+    <div class="media-gallery-field" data-field-property="{{ name }}">
+        <div class="media-list"></div>
+
+        {{ form_widget(form, { type: 'hidden' }) }}
+    </div>
+
+    <style>
+        .media-gallery-field { display:block; }
+        .media-list { display:flex; flex-wrap:wrap; gap:8px; }
+        .media-item { position:relative; width:100px; height:100px; border-radius:6px; border:1px solid #ddd; overflow:visible; background:#fff; }
+        .media-item img, .media-item video { width:100%; height:100%; object-fit:cover; display:block; border-radius:6px; }
+        .media-remove { position:absolute; top:-8px; right:-8px; width:24px; height:24px; border-radius:50%; background:#e03131; color:#fff; border:2px solid #fff; line-height:20px; font-weight:bold; text-align:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:3; font-size:16px; }
+        .media-remove:hover { background:#c92a2a; }
+        .media-item.dragging { opacity: .6; }
+        .media-item.drop-target { outline: 2px dashed #339af0; }
+        .media-item.add-tile { display:flex; align-items:center; justify-content:center; color:#888; background:#fafafa; border:1px dashed #bbb; cursor:pointer; flex-direction:column; font-size: 12px; padding: 10px; }
+        .media-item.add-tile:hover { color:#666; border-color:#999; }
+        .media-type-badge { position:absolute; top:5px; left:5px; background:rgba(0,0,0,0.7); color:white; padding:2px 6px; border-radius:4px; font-size:10px; display:flex; align-items:center; gap:2px; }
+        .media-play-overlay { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:30px; height:30px; background:rgba(0,0,0,0.7); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; cursor:pointer; }
+
+        /* Modal styles */
+        .media-gallery-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8); z-index: 2147483647; display: flex; align-items: center; justify-content: center; }
+        .media-gallery-modal-content { width: 90vw; height: 90vh; background: #fff; border-radius: 8px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.4); overflow: hidden; }
+        .media-gallery-modal-header { padding: 12px 16px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .media-gallery-modal-body { height: calc(100% - 48px); overflow: hidden; }
+        .media-gallery-iframe { width: 100%; height: 100%; border: none; display: block; }
+        .media-gallery-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .media-gallery-close:hover { color: #333; }
+    </style>
+
+    <script>
+        if (!window.mediaGalleryScriptLoaded) {
+            window.mediaGalleryScriptLoaded = true;
+
+            function openMediaGallery(el) {
+                try { console.debug('[MediaGallery] openMediaGallery trigger'); } catch(e) {}
+                const container = el.closest('.media-gallery-field');
+                if (!container) return;
+                const token = Date.now() + '_' + Math.random();
+
+                const modal = document.createElement('div');
+                modal.id = 'mediaGalleryModal';
+                modal.className = 'media-gallery-modal';
+
+                const content = document.createElement('div');
+                content.className = 'media-gallery-modal-content';
+
+                const header = document.createElement('div');
+                header.className = 'media-gallery-modal-header';
+                header.innerHTML = '<h5 class="mb-0">选择媒体文件</h5><button type="button" class="media-gallery-close" onclick="closeMediaGallery()">&times;</button>';
+
+                const body = document.createElement('div');
+                body.className = 'media-gallery-modal-body';
+                const iframe = document.createElement('iframe');
+                iframe.className = 'media-gallery-iframe';
+                iframe.src = '/gallery?mode=select&multiple=1&token=' + encodeURIComponent(token);
+                body.appendChild(iframe);
+
+                content.appendChild(header);
+                content.appendChild(body);
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+                try { console.debug('[MediaGallery] modal appended with token', token); } catch(e) {}
+
+                const origin = window.location.origin;
+                const onMessage = function(event) {
+                    if (event.origin !== origin) return;
+                    if (!event.data) return;
+                    if (event.data.token !== token) return;
+                    
+                    let urls = [];
+                    
+                    // 处理多种事件类型
+                    if (event.data.type === 'imagesSelected') {
+                        // 兼容旧的事件类型
+                        urls = Array.isArray(event.data.urls) ? event.data.urls : [];
+                    } else if (event.data.type === 'mediaSelectedMultiple') {
+                        // 新的多选媒体事件
+                        if (Array.isArray(event.data.items)) {
+                            urls = event.data.items.map(item => item.url).filter(url => url);
+                        }
+                    } else if (event.data.type === 'mediaSelected') {
+                        // 单个媒体选择
+                        if (event.data.url) {
+                            urls = [event.data.url];
+                        }
+                    } else {
+                        return; // 不支持的事件类型
+                    }
+                    
+                    if (urls.length > 0) {
+                        updateMediaField(container, urls);
+                        closeMediaGallery();
+                    }
+                    window.removeEventListener('message', onMessage);
+                };
+                window.addEventListener('message', onMessage);
+
+                modal.addEventListener('click', function(e) { if (e.target === modal) closeMediaGallery(); });
+                document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ closeMediaGallery(); document.removeEventListener('keydown', esc); }});
+            }
+
+            function closeMediaGallery() {
+                const modal = document.getElementById('mediaGalleryModal');
+                if (modal) modal.remove();
+            }
+
+            function getCurrentItems(container) {
+                const input = container.querySelector('input, textarea');
+                if (!input || !input.value) return [];
+                try { const arr = JSON.parse(input.value); return Array.isArray(arr) ? arr : []; } catch(e) { return []; }
+            }
+
+            function setCurrentItems(container, items) {
+                const input = container.querySelector('input, textarea');
+                if (input) input.value = JSON.stringify(items);
+            }
+
+            function guessMediaType(url) {
+                const extension = url.toLowerCase().split('.').pop();
+                const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v'];
+                return videoExtensions.includes(extension) ? 'video' : 'image';
+            }
+
+            function updateMediaField(container, newUrls) {
+                const items = getCurrentItems(container);
+                const existingUrls = new Set(items.map(item => item.url));
+                
+                // 添加新项
+                newUrls.forEach(url => { 
+                    if (url && typeof url === 'string' && !existingUrls.has(url)) {
+                        items.push({
+                            url: url,
+                            type: guessMediaType(url)
+                        });
+                    }
+                });
+                
+                const list = container.querySelector('.media-list');
+                list.querySelectorAll('.media-item').forEach(n => n.remove());
+
+                items.forEach((item, index) => {
+                    const mediaItem = createMediaItem(item, index);
+                    list.appendChild(mediaItem);
+                });
+
+                const addTile = createAddTile();
+                list.appendChild(addTile);
+
+                setCurrentItems(container, items);
+            }
+
+            function createMediaItem(item, index) {
+                const div = document.createElement('div');
+                div.className = 'media-item';
+                div.dataset.index = index;
+                
+                if (item.type === 'video') {
+                    div.innerHTML = '<video src="' + item.url + '" muted></video>' +
+                        '<div class="media-type-badge"><i class="bi bi-camera-video"></i> 视频</div>' +
+                        '<div class="media-play-overlay"><i class="bi bi-play-fill"></i></div>' +
+                        '<button type="button" class="media-remove" title="移除">×</button>';
+                    
+                    // 点击播放视频
+                    div.querySelector('.media-play-overlay').onclick = function(e) {
+                        e.stopPropagation();
+                        showMediaPreview(item.url, 'video');
+                    };
+                } else {
+                    div.innerHTML = '<img src="' + item.url + '" alt="">' +
+                        '<button type="button" class="media-remove" title="移除">×</button>';
+                    
+                    // 点击查看图片
+                    div.querySelector('img').onclick = function(e) {
+                        e.stopPropagation();
+                        showMediaPreview(item.url, 'image');
+                    };
+                }
+                
+                div.querySelector('.media-remove').onclick = function(e){ 
+                    e.stopPropagation(); 
+                    removeMediaItem(this); 
+                };
+                
+                bindDnD(div);
+                return div;
+            }
+
+            function createAddTile() {
+                const addTile = document.createElement('div');
+                addTile.className = 'media-item add-tile';
+                addTile.innerHTML = '<i class="bi bi-plus-lg" style="font-size: 20px; margin-bottom: 5px;"></i><span>添加媒体</span>';
+                addTile.addEventListener('click', function(e){ 
+                    e.stopPropagation(); 
+                    openMediaGallery(addTile); 
+                });
+                return addTile;
+            }
+
+            function showMediaPreview(url, type) {
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2147483647; display: flex; align-items: center; justify-content: center; cursor: pointer;';
+                
+                if (type === 'video') {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.controls = true;
+                    video.autoplay = true;
+                    video.style.cssText = 'max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);';
+                    modal.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.cssText = 'max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);';
+                    modal.appendChild(img);
+                }
+                
+                modal.onclick = function(){ modal.remove(); };
+                document.body.appendChild(modal);
+                document.addEventListener('keydown', function closeOnEscape(e){ 
+                    if (e.key === 'Escape') { 
+                        modal.remove(); 
+                        document.removeEventListener('keydown', closeOnEscape); 
+                    } 
+                });
+            }
+
+            function removeMediaItem(btn) {
+                const container = btn.closest('.media-gallery-field');
+                const item = btn.closest('.media-item');
+                const index = parseInt(item.dataset.index);
+                
+                const items = getCurrentItems(container);
+                if (index >= 0 && index < items.length) {
+                    items.splice(index, 1);
+                }
+
+                item.remove();
+                setCurrentItems(container, items);
+
+                // 重新渲染以更新索引
+                const list = container.querySelector('.media-list');
+                hydrateMediaField(container);
+            }
+
+            function hydrateMediaField(container) {
+                const items = getCurrentItems(container);
+                const list = container.querySelector('.media-list');
+                list.innerHTML = '';
+                
+                items.forEach((item, index) => {
+                    const mediaItem = createMediaItem(item, index);
+                    list.appendChild(mediaItem);
+                });
+                
+                const addTile = createAddTile();
+                list.appendChild(addTile);
+
+                // 事件委托兜底
+                if (!list.__mediaGalleryBound) {
+                    list.addEventListener('click', function(e){
+                        const t = e.target.closest('.add-tile');
+                        if (t) { 
+                            e.stopPropagation(); 
+                            openMediaGallery(t); 
+                        }
+                    });
+                    list.__mediaGalleryBound = true;
+                }
+            }
+
+            // 页面加载时初始化
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.media-gallery-field').forEach(hydrateMediaField);
+            });
+
+            // 拖拽排序
+            function bindDnD(item) {
+                item.setAttribute('draggable', 'true');
+                item.addEventListener('dragstart', onDragStart);
+                item.addEventListener('dragover', onDragOver);
+                item.addEventListener('drop', onDrop);
+                item.addEventListener('dragend', onDragEnd);
+            }
+
+            function onDragStart(e) {
+                const item = e.currentTarget;
+                if (item.classList.contains('add-tile')) return e.preventDefault();
+                item.classList.add('dragging');
+                const list = item.parentElement;
+                const items = Array.from(list.querySelectorAll('.media-item:not(.add-tile)'));
+                item.dataset.dragIndex = String(items.indexOf(item));
+                if (e.dataTransfer) e.dataTransfer.setData('text/plain', item.dataset.dragIndex || '');
+            }
+
+            function onDragOver(e) {
+                e.preventDefault();
+                const target = e.currentTarget;
+                if (target.classList.contains('add-tile')) return;
+                target.classList.add('drop-target');
+            }
+
+            function onDrop(e) {
+                e.preventDefault();
+                const target = e.currentTarget;
+                target.classList.remove('drop-target');
+                const list = target.parentElement;
+                const container = list.closest('.media-gallery-field');
+                const items = getCurrentItems(container);
+                const dragging = document.querySelector('.media-item.dragging');
+                const from = Number(dragging ? dragging.dataset.dragIndex : -1);
+                const to = Array.from(list.querySelectorAll('.media-item:not(.add-tile)')).indexOf(target);
+                
+                if (from < 0 || to < 0 || from === to) return;
+
+                if (from >= items.length || to >= items.length) return;
+                const [moved] = items.splice(from, 1);
+                items.splice(to, 0, moved);
+                setCurrentItems(container, items);
+                hydrateMediaField(container);
+            }
+
+            function onDragEnd(e) {
+                const item = e.currentTarget;
+                item.classList.remove('dragging');
+                item.removeAttribute('data-drag-index');
+                document.querySelectorAll('.media-item.drop-target').forEach(el => el.classList.remove('drop-target'));
+            }
+
+            window.openMediaGallery = openMediaGallery;
+            window.removeMediaItem = removeMediaItem;
+            window.hydrateMediaField = hydrateMediaField;
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{# Form theme for ImageGalleryType (block prefix: image_gallery) #}
+{% block image_gallery_widget %}
+    <div class="image-gallery-field-container" data-field-property="{{ name }}">
+        <div class="current-image-preview image-click-target" onclick="openImageGallery(this)">
+            {% if value %}
+                <div class="image-preview-wrapper">
+                    <img src="{{ value }}" alt="当前图片">
+                    <button type="button" class="image-clear-btn" title="清除" onclick="event.stopPropagation(); clearImage(this)">×</button>
+                </div>
+            {% else %}
+                <div class="no-image-placeholder">点击选择图片</div>
+            {% endif %}
+        </div>
+
+        {# 隐藏输入控件 #}
+        {{ form_widget(form, { type: 'hidden' }) }}
+    </div>
+
+    <style>
+        .image-gallery-field-container { display: inline-block; }
+        .current-image-preview { margin-bottom: 10px; }
+        .image-click-target { cursor: pointer; }
+        .image-preview-wrapper { position: relative; display: inline-block; }
+        .image-preview-wrapper img { max-width: 150px; max-height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; display: block; }
+        .image-clear-btn { position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; line-height: 20px; border-radius: 50%; border: 2px solid #fff; background: #e03131; color: #fff; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+        .image-clear-btn:hover { background: #c92a2a; }
+        .no-image-placeholder { width: 150px; height: 100px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 4px; background: #fafafa; }
+
+        .image-gallery-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .image-gallery-modal-content { width: 90%; height: 90%; background: white; border-radius: 8px; position: relative; }
+        .image-gallery-modal-header { padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .image-gallery-modal-body { height: calc(100% - 60px); overflow: hidden; }
+        .image-gallery-iframe { width: 100%; height: 100%; border: none; }
+        .image-gallery-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .image-gallery-close:hover { color: #333; }
+    </style>
+
+    <script>
+        if (!window.imageGalleryScriptLoaded) {
+            window.imageGalleryScriptLoaded = true;
+
+            function openImageGallery(element) {
+                const container = element.closest('.image-gallery-field-container');
+                if (!container) return;
+                const instanceId = 'gallery_' + Date.now() + '_' + Math.random();
+                container.setAttribute('data-instance-id', instanceId);
+                const token = Date.now() + '_' + Math.random();
+
+                const modal = document.createElement('div');
+                modal.id = 'imageGalleryModal';
+                modal.className = 'image-gallery-modal';
+
+                const modalContent = document.createElement('div');
+                modalContent.className = 'image-gallery-modal-content';
+
+                const modalHeader = document.createElement('div');
+                modalHeader.className = 'image-gallery-modal-header';
+                modalHeader.innerHTML = '<h5 class="mb-0">选择图片</h5><button type="button" class="image-gallery-close" onclick="closeImageGallery()">&times;</button>';
+
+                const modalBody = document.createElement('div');
+                modalBody.className = 'image-gallery-modal-body';
+
+                const iframe = document.createElement('iframe');
+                iframe.className = 'image-gallery-iframe';
+                iframe.src = '/gallery?mode=select&token=' + encodeURIComponent(token);
+
+                modalBody.appendChild(iframe);
+                modalContent.appendChild(modalHeader);
+                modalContent.appendChild(modalBody);
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+
+                const origin = window.location.origin;
+                const onMessage = function(event) {
+                    if (event.origin !== origin) return;
+                    if (!event.data || event.data.type !== 'imageSelected') return;
+                    if (event.data.token !== token) return;
+                    const imageUrl = event.data.url;
+                    updateImageField(container, imageUrl);
+                    closeImageGallery();
+                    window.removeEventListener('message', onMessage);
+                };
+                window.addEventListener('message', onMessage);
+
+                modal.addEventListener('click', function(e) { if (e.target === modal) closeImageGallery(); });
+                document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ closeImageGallery(); document.removeEventListener('keydown', esc); }});
+            }
+
+            function closeImageGallery() {
+                const modal = document.getElementById('imageGalleryModal');
+                if (modal) modal.remove();
+            }
+
+            function updateImageField(container, imageUrl) {
+                const preview = container.querySelector('.current-image-preview');
+                let wrapper = preview.querySelector('.image-preview-wrapper');
+                if (!wrapper) {
+                    wrapper = document.createElement('div');
+                    wrapper.className = 'image-preview-wrapper';
+                    preview.innerHTML = '';
+                    preview.appendChild(wrapper);
+                }
+
+                let img = wrapper.querySelector('img');
+                if (!img) {
+                    img = document.createElement('img');
+                    wrapper.appendChild(img);
+                }
+                img.src = imageUrl;
+                img.alt = '当前图片';
+
+                let clearBtn = wrapper.querySelector('.image-clear-btn');
+                if (!clearBtn) {
+                    clearBtn = document.createElement('button');
+                    clearBtn.type = 'button';
+                    clearBtn.className = 'image-clear-btn';
+                    clearBtn.title = '清除';
+                    clearBtn.textContent = '×';
+                    clearBtn.onclick = function(e){ e.stopPropagation(); clearImage(clearBtn); };
+                    wrapper.appendChild(clearBtn);
+                }
+
+                // 更新输入
+                const input = container.querySelector('input, textarea');
+                if (input) input.value = imageUrl;
+            }
+
+            function clearImage(triggerBtn) {
+                const container = triggerBtn.closest('.image-gallery-field-container');
+                if (!container) return;
+                const preview = container.querySelector('.current-image-preview');
+                preview.innerHTML = '<div class="no-image-placeholder">点击选择图片</div>';
+
+                // 清空输入
+                const input = container.querySelector('input, textarea');
+                if (input) input.value = '';
+            }
+        }
+    </script>
+{% endblock %}

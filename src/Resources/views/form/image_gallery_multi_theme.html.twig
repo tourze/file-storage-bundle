@@ -1,0 +1,235 @@
+{% block image_gallery_multi_widget %}
+    <div class="image-gallery-multi-field" data-field-property="{{ name }}">
+        <div class="image-list"></div>
+
+        {{ form_widget(form, { type: 'hidden' }) }}
+    </div>
+
+    <style>
+        .image-gallery-multi-field { display:block; }
+        .image-list { display:flex; flex-wrap:wrap; gap:8px; }
+        .image-item { position:relative; width:100px; height:100px; border-radius:6px; border:1px solid #ddd; overflow:visible; background:#fff; }
+        .image-item img { width:100%; height:100%; object-fit:cover; display:block; border-radius:6px; }
+        .image-remove { position:absolute; top:-8px; right:-8px; width:24px; height:24px; border-radius:50%; background:#e03131; color:#fff; border:2px solid #fff; line-height:20px; font-weight:bold; text-align:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:3; font-size:16px; }
+        .image-remove:hover { background:#c92a2a; }
+        .image-item.dragging { opacity: .6; }
+        .image-item.drop-target { outline: 2px dashed #339af0; }
+        .image-item.add-tile { display:flex; align-items:center; justify-content:center; color:#888; background:#fafafa; border:1px dashed #bbb; cursor:pointer; }
+        .image-item.add-tile:hover { color:#666; border-color:#999; }
+
+        /* Modal styles (inline to avoid external dependency) */
+        .image-gallery-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8); z-index: 2147483647; display: flex; align-items: center; justify-content: center; }
+        .image-gallery-modal-content { width: 90vw; height: 90vh; background: #fff; border-radius: 8px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.4); overflow: hidden; }
+        .image-gallery-modal-header { padding: 12px 16px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .image-gallery-modal-body { height: calc(100% - 48px); overflow: hidden; }
+        .image-gallery-iframe { width: 100%; height: 100%; border: none; display: block; }
+        .image-gallery-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .image-gallery-close:hover { color: #333; }
+    </style>
+
+    <script>
+        if (!window.imageGalleryMultiScriptLoaded) {
+            window.imageGalleryMultiScriptLoaded = true;
+
+            function openImageGalleryMulti(el) {
+                try { console.debug('[ImageGalleryMulti] openImageGalleryMulti trigger'); } catch(e) {}
+                const container = el.closest('.image-gallery-multi-field');
+                if (!container) return;
+                const token = Date.now() + '_' + Math.random();
+
+                const modal = document.createElement('div');
+                modal.id = 'imageGalleryModal';
+                modal.className = 'image-gallery-modal';
+
+                const content = document.createElement('div');
+                content.className = 'image-gallery-modal-content';
+
+                const header = document.createElement('div');
+                header.className = 'image-gallery-modal-header';
+                header.innerHTML = '<h5 class="mb-0">选择图片</h5><button type="button" class="image-gallery-close" onclick="closeImageGalleryMulti()">&times;</button>';
+
+                const body = document.createElement('div');
+                body.className = 'image-gallery-modal-body';
+                const iframe = document.createElement('iframe');
+                iframe.className = 'image-gallery-iframe';
+                iframe.src = '/gallery?mode=select&multiple=1&token=' + encodeURIComponent(token);
+                body.appendChild(iframe);
+
+                content.appendChild(header);
+                content.appendChild(body);
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+                try { console.debug('[ImageGalleryMulti] modal appended with token', token); } catch(e) {}
+
+                const origin = window.location.origin;
+                const onMessage = function(event) {
+                    if (event.origin !== origin) return;
+                    if (!event.data || event.data.type !== 'imagesSelected') return;
+                    if (event.data.token !== token) return;
+                    const urls = Array.isArray(event.data.urls) ? event.data.urls : [];
+                    updateMultiField(container, urls);
+                    closeImageGalleryMulti();
+                    window.removeEventListener('message', onMessage);
+                };
+                window.addEventListener('message', onMessage);
+
+                modal.addEventListener('click', function(e) { if (e.target === modal) closeImageGalleryMulti(); });
+                document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ closeImageGalleryMulti(); document.removeEventListener('keydown', esc); }});
+            }
+
+            function closeImageGalleryMulti() {
+                const modal = document.getElementById('imageGalleryModal');
+                if (modal) modal.remove();
+            }
+
+            function getCurrentUrls(container) {
+                const input = container.querySelector('input, textarea');
+                if (!input || !input.value) return [];
+                try { const arr = JSON.parse(input.value); return Array.isArray(arr) ? arr : []; } catch(e) { return []; }
+            }
+
+            function setCurrentUrls(container, urls) {
+                const input = container.querySelector('input, textarea');
+                if (input) input.value = JSON.stringify(urls);
+            }
+
+            function updateMultiField(container, newUrls) {
+                const urls = new Set(getCurrentUrls(container));
+                newUrls.forEach(u => { if (u && typeof u === 'string') urls.add(u); });
+                const list = container.querySelector('.image-list');
+                list.querySelectorAll('.image-item').forEach(n => n.remove());
+
+                Array.from(urls).forEach((u) => {
+                    const item = document.createElement('div');
+                    item.className = 'image-item';
+                    item.innerHTML = '<img src="' + u + '" alt="">' +
+                        '<button type="button" class="image-remove" title="移除">×</button>';
+                    item.querySelector('.image-remove').onclick = function(e){ e.stopPropagation(); removeImageItem(this); };
+                    bindDnD(item);
+                    list.appendChild(item);
+                });
+
+                const addTile = document.createElement('div');
+                addTile.className = 'image-item add-tile';
+                addTile.innerHTML = '<span>添加图片</span>';
+                addTile.addEventListener('click', function(e){ e.stopPropagation(); openImageGalleryMulti(addTile); });
+                list.appendChild(addTile);
+
+                setCurrentUrls(container, Array.from(urls));
+            }
+
+            function removeImageItem(btn) {
+                const container = btn.closest('.image-gallery-multi-field');
+                const item = btn.closest('.image-item');
+                const img = item.querySelector('img');
+                const url = img ? img.getAttribute('src') : null;
+                const urls = getCurrentUrls(container).filter(u => u !== url);
+
+                item.remove();
+                setCurrentUrls(container, urls);
+
+                // 确保添加按钮存在
+                const list = container.querySelector('.image-list');
+                if (!list.querySelector('.image-item.add-tile')) {
+                    const addTile = document.createElement('div');
+                    addTile.className = 'image-item add-tile';
+                    addTile.innerHTML = '<span>添加图片</span>';
+                    list.appendChild(addTile);
+                }
+            }
+
+            function hydrateMultiField(container) {
+                const current = getCurrentUrls(container);
+                const list = container.querySelector('.image-list');
+                list.innerHTML = '';
+                if (current.length > 0) {
+                    current.forEach((u) => {
+                        const item = document.createElement('div');
+                        item.className = 'image-item';
+                        item.innerHTML = '<img src="' + u + '" alt="">' +
+                            '<button type="button" class="image-remove" title="移除">×</button>';
+                        item.querySelector('.image-remove').onclick = function(e){ e.stopPropagation(); removeImageItem(this); };
+                        bindDnD(item);
+                        list.appendChild(item);
+                    });
+                }
+                const addTile = document.createElement('div');
+                addTile.className = 'image-item add-tile';
+                addTile.innerHTML = '<span>添加图片</span>';
+                addTile.addEventListener('click', function(e){ e.stopPropagation(); openImageGalleryMulti(addTile); });
+                list.appendChild(addTile);
+
+                // 事件委托兜底，防止某些渲染时机遗漏
+                if (!list.__galleryBound) {
+                    list.addEventListener('click', function(e){
+                        const t = e.target.closest('.add-tile');
+                        if (t) { e.stopPropagation(); openImageGalleryMulti(t); }
+                    });
+                    list.__galleryBound = true;
+                }
+            }
+
+            // 页面加载时进行一次渲染
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.image-gallery-multi-field').forEach(hydrateMultiField);
+            });
+
+            // 拖拽排序
+            function bindDnD(item) {
+                item.setAttribute('draggable', 'true');
+                item.addEventListener('dragstart', onDragStart);
+                item.addEventListener('dragover', onDragOver);
+                item.addEventListener('drop', onDrop);
+                item.addEventListener('dragend', onDragEnd);
+            }
+
+            function onDragStart(e) {
+                const item = e.currentTarget;
+                if (item.classList.contains('add-tile')) return e.preventDefault();
+                item.classList.add('dragging');
+                const list = item.parentElement;
+                const items = Array.from(list.querySelectorAll('.image-item:not(.add-tile)'));
+                item.dataset.dragIndex = String(items.indexOf(item));
+                if (e.dataTransfer) e.dataTransfer.setData('text/plain', item.dataset.dragIndex || '');
+            }
+
+            function onDragOver(e) {
+                e.preventDefault();
+                const target = e.currentTarget;
+                if (target.classList.contains('add-tile')) return;
+                target.classList.add('drop-target');
+            }
+
+            function onDrop(e) {
+                e.preventDefault();
+                const target = e.currentTarget;
+                target.classList.remove('drop-target');
+                const list = target.parentElement;
+                const container = list.closest('.image-gallery-multi-field');
+                const items = Array.from(list.querySelectorAll('.image-item:not(.add-tile)'));
+                const dragging = document.querySelector('.image-item.dragging');
+                const from = Number(dragging ? dragging.dataset.dragIndex : -1);
+                const to = items.indexOf(target);
+                if (from < 0 || to < 0 || from === to) return;
+
+                const urls = getCurrentUrls(container);
+                if (from >= urls.length || to >= urls.length) return;
+                const [moved] = urls.splice(from, 1);
+                urls.splice(to, 0, moved);
+                setCurrentUrls(container, urls);
+                hydrateMultiField(container);
+            }
+
+            function onDragEnd(e) {
+                const item = e.currentTarget;
+                item.classList.remove('dragging');
+                item.removeAttribute('data-drag-index');
+                document.querySelectorAll('.image-item.drop-target').forEach(el => el.classList.remove('drop-target'));
+            }
+
+            window.openImageGalleryMulti = openImageGalleryMulti;
+            window.removeImageItem = removeImageItem;
+            window.hydrateMultiField = hydrateMultiField;
+        }
+    </script>
+{% endblock %}

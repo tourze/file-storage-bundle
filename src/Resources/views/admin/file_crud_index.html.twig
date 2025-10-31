@@ -1,0 +1,35 @@
+{% extends '@EasyAdmin/crud/index.html.twig' %}
+
+{% block global_actions %}
+    <div class="global-actions">
+        <a href="#" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#galleryModal">
+            <i class="fa fa-image"></i> 图片库
+        </a>
+    </div>
+    {{ parent() }}
+{% endblock %}
+
+{% block body_javascript %}
+    {{ parent() }}
+    
+    <!-- Gallery Modal -->
+    <div class="modal fade" id="galleryModal" tabindex="-1" aria-labelledby="galleryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="galleryModalLabel">图片库</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe id="galleryIframe" 
+                            src="{{ path('file_gallery') }}" 
+                            width="100%" 
+                            height="100%" 
+                            frameborder="0"
+                            style="border: none; height: calc(100vh - 140px);">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

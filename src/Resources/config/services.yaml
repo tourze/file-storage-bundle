@@ -1,0 +1,27 @@
+parameters:
+  file_storage.default_adapter: 'local'
+
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  Tourze\FileStorageBundle\Service\:
+    resource: '../../Service/'
+  Tourze\FileStorageBundle\Controller\:
+    resource: '../../Controller/'
+  Tourze\FileStorageBundle\Repository\:
+    resource: '../../Repository/'
+  Tourze\FileStorageBundle\Command\:
+    resource: '../../Command/'
+  Tourze\FileStorageBundle\Factory\:
+    resource: '../../Factory/'
+  Tourze\FileStorageBundle\EventListener\:
+    resource: '../../EventListener/'
+  Tourze\FileStorageBundle\Form\:
+    resource: '../../Form/'
+
+  # Flysystem FilesystemOperator service
+  League\Flysystem\FilesystemOperator:
+    lazy: false
+    factory: ['@Tourze\FileStorageBundle\Factory\FilesystemFactory', 'createFilesystem']

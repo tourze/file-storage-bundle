@@ -1,0 +1,18 @@
+{% block ea_text_editor_widget %}
+    {% set number_of_rows = form.vars.ea_vars.field.customOptions.get('numOfRows')|default(5) %}
+    {% set editor_config = form.vars.ea_vars.field.customOptions.get('tinyMceEditorConfig')|default(null) %}
+    {% set loader_url = form.vars.ea_vars.field.customOptions.get('tinyMceLoaderUrl')|default(null) %}
+
+    {% set widget_attr = attr|merge({
+        class: (attr.class|default('') ~ ' ea-tiny-editor-content')|trim,
+        'data-number-of-rows': number_of_rows,
+        'data-tinymce-config': editor_config|json_encode,
+        'data-tinymce-field': 'true'
+    }) %}
+
+    {% if loader_url %}
+        {% set widget_attr = widget_attr|merge({'data-tinymce-loader': loader_url}) %}
+    {% endif %}
+
+    {{ form_widget(form, { attr: widget_attr }) }}
+{% endblock %}

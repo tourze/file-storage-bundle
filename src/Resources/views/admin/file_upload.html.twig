@@ -1,0 +1,259 @@
+{% extends '@EasyAdmin/layout.html.twig' %}
+
+{% block content_title %}
+    <i class="fa fa-upload"></i> 上传文件
+{% endblock %}
+
+{% block main %}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-cloud-upload"></i> 选择文件上传
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        <div class="mb-4">
+                            <label for="upload_type" class="form-label fw-bold">
+                                <i class="fa fa-tags"></i> 上传类型
+                            </label>
+                            <select class="form-select" id="upload_type" name="upload_type" required>
+                                <option value="member">
+                                    <i class="fa fa-user"></i> 会员文件 (永久保存)
+                                </option>
+                                <option value="anonymous">
+                                    <i class="fa fa-user-secret"></i> 匿名文件 (定期清理)
+                                </option>
+                            </select>
+                            <div class="form-text">
+                                <i class="fa fa-info-circle text-info"></i>
+                                会员文件会关联到当前用户，匿名文件不会关联用户且可能被定期清理
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="file" class="form-label fw-bold">
+                                <i class="fa fa-file"></i> 选择文件
+                            </label>
+                            <div class="upload-zone border border-2 border-dashed rounded p-4 text-center" 
+                                 ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragenter="handleDragEnter(event)">
+                                <input type="file" class="form-control d-none" id="file" name="file" required>
+                                <div class="upload-content">
+                                    <i class="fa fa-cloud-upload fa-3x text-muted mb-3"></i>
+                                    <p class="mb-2">
+                                        <strong>拖拽文件到此处上传</strong><br>
+                                        或者 <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('file').click()">
+                                            <i class="fa fa-folder-open"></i> 浏览文件
+                                        </button>
+                                    </p>
+                                    <small class="text-muted">
+                                        支持的文件类型和大小限制取决于系统配置
+                                    </small>
+                                </div>
+                            </div>
+                            <div id="file-info" class="mt-2" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="fa fa-file"></i> <span id="file-name"></span>
+                                    (<span id="file-size"></span>)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                                <i class="fa fa-upload"></i> 开始上传
+                            </button>
+                            <a href="{{ ea_url().setAction('index') }}" class="btn btn-secondary btn-lg">
+                                <i class="fa fa-arrow-left"></i> 返回列表
+                            </a>
+                        </div>
+
+                        <div id="upload-progress" class="mt-3" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 100%">
+                                    <i class="fa fa-spinner fa-spin"></i> 正在上传...
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-info-circle"></i> 文件上传说明
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>支持的操作：</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fa fa-check text-success"></i> 自动文件类型验证</li>
+                        <li><i class="fa fa-check text-success"></i> 自动文件大小检查</li>
+                        <li><i class="fa fa-check text-success"></i> 重复文件检测 (MD5)</li>
+                        <li><i class="fa fa-check text-success"></i> 安全文件存储</li>
+                    </ul>
+
+                    <h6>上传类型说明：</h6>
+                    <div class="alert alert-info">
+                        <strong>会员文件：</strong><br>
+                        • 关联到当前登录用户<br>
+                        • 永久保存<br>
+                        • 可用于用户相关功能
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>匿名文件：</strong><br>
+                        • 不关联用户<br>
+                        • 可能被定期清理<br>
+                        • 适用于临时文件
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-cog"></i> 系统配置
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1">
+                        <strong>支持的文件类型：</strong><br>
+                        <small class="text-muted">根据数据库中的文件类型配置动态确定</small>
+                    </p>
+                    
+                    <p class="mb-1">
+                        <strong>文件大小限制：</strong><br>
+                        <small class="text-muted">每个文件类型可设置不同的大小限制</small>
+                    </p>
+                    
+                    <p class="mb-0">
+                        <strong>存储位置：</strong><br>
+                        <small class="text-muted">由系统自动管理，支持本地和云存储</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <style>
+        .upload-zone {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-zone:hover {
+            border-color: #0d6efd !important;
+            background-color: #f8f9fa;
+        }
+        .upload-zone.dragover {
+            border-color: #0d6efd !important;
+            background-color: #e3f2fd;
+        }
+    </style>
+    <script>
+        // 全局函数
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        }
+
+        function handleDragEnter(event) {
+            event.preventDefault();
+            event.target.closest('.upload-zone').classList.add('dragover');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const uploadZone = event.target.closest('.upload-zone');
+            uploadZone.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('file').files = files;
+                showFileInfo(files[0]);
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showFileInfo(file) {
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('file-size').textContent = formatFileSize(file.size);
+            document.getElementById('file-info').style.display = 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('uploadForm');
+            const fileInput = document.getElementById('file');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadProgress = document.getElementById('upload-progress');
+            const uploadZone = document.querySelector('.upload-zone');
+            
+            // 点击上传区域时触发文件选择
+            uploadZone.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 文件选择时的处理
+            fileInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    showFileInfo(file);
+                }
+            });
+
+            // 拖拽事件处理
+            uploadZone.addEventListener('dragleave', function(event) {
+                if (!uploadZone.contains(event.relatedTarget)) {
+                    uploadZone.classList.remove('dragover');
+                }
+            });
+            
+            // 表单提交时的处理
+            form.addEventListener('submit', function(e) {
+                if (!fileInput.files.length) {
+                    e.preventDefault();
+                    alert('请选择要上传的文件');
+                    return;
+                }
+                
+                // 显示上传进度
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 正在上传...';
+                uploadProgress.style.display = 'block';
+                
+                // 5秒后重新启用按钮（防止卡死）
+                setTimeout(function() {
+                    if (uploadBtn.disabled) {
+                        uploadBtn.disabled = false;
+                        uploadBtn.innerHTML = '<i class="fa fa-upload"></i> 开始上传';
+                        uploadProgress.style.display = 'none';
+                    }
+                }, 30000); // 30秒超时
+            });
+
+            // 防止页面默认的拖拽行为
+            document.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+            document.addEventListener('drop', function(e) {
+                e.preventDefault();
+            });
+        });
+    </script>
+{% endblock %}

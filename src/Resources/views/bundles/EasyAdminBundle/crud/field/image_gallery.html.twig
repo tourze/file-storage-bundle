@@ -1,0 +1,245 @@
+{# ImageGalleryField 模板 #}
+<!-- DEBUG: ImageGallery template is being used -->
+{% if ea.crud.currentAction == 'detail' or ea.crud.currentAction == 'index' %}
+    {# 列表页和详情页：使用 formatValue 的结果 #}
+    {{ field.formattedValue|raw }}
+{% else %}
+    {# 表单页：显示图片选择器 #}
+    <div class="image-gallery-field-container" data-field-property="{{ field.property }}">
+        <div class="current-image-preview">
+            {% if form.vars.value %}
+                <img src="{{ form.vars.value }}" alt="当前图片" 
+                     style="max-width: 150px; max-height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; margin-bottom: 10px;">
+            {% else %}
+                <div class="no-image-placeholder" style="width: 150px; height: 100px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; color: #999; margin-bottom: 10px; border-radius: 4px;">
+                    无图片
+                </div>
+            {% endif %}
+        </div>
+        
+        <button type="button" class="btn btn-primary btn-sm" onclick="openImageGallery(this)">
+            {% if form.vars.value %}更换图片{% else %}选择图片{% endif %}
+        </button>
+        
+        {% if form.vars.value %}
+            <button type="button" class="btn btn-danger btn-sm ms-2" onclick="clearImage(this)">
+                清除
+            </button>
+        {% endif %}
+        
+        {{ form_widget(form) }}
+    </div>
+
+    <style>
+    .image-gallery-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .image-gallery-modal-content {
+        width: 90%;
+        height: 90%;
+        background: white;
+        border-radius: 8px;
+        position: relative;
+    }
+    
+    .image-gallery-modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .image-gallery-modal-body {
+        height: calc(100% - 60px);
+        overflow: hidden;
+    }
+    
+    .image-gallery-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+    
+    .image-gallery-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+    }
+    
+    .image-gallery-close:hover {
+        color: #333;
+    }
+    </style>
+
+    <script>
+    if (!window.imageGalleryScriptLoaded) {
+        window.imageGalleryScriptLoaded = true;
+        
+        function openImageGallery(triggerBtn) {
+            const container = triggerBtn.closest('.image-gallery-field-container');
+            if (!container) return;
+            const fieldName = container.getAttribute('data-field-property');
+            const instanceId = 'gallery_' + Date.now() + '_' + Math.random();
+            container.setAttribute('data-instance-id', instanceId);
+            // 安全 token（父子双向校验）
+            const token = Date.now() + '_' + Math.random();
+            // 创建模态框
+            const modal = document.createElement('div');
+            modal.id = 'imageGalleryModal';
+            modal.className = 'image-gallery-modal';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'image-gallery-modal-content';
+            
+            const modalHeader = document.createElement('div');
+            modalHeader.className = 'image-gallery-modal-header';
+            modalHeader.innerHTML = `
+                <h5 class="mb-0">选择图片</h5>
+                <button type="button" class="image-gallery-close" onclick="closeImageGallery()">&times;</button>
+            `;
+            
+            const modalBody = document.createElement('div');
+            modalBody.className = 'image-gallery-modal-body';
+            
+            const iframe = document.createElement('iframe');
+            iframe.className = 'image-gallery-iframe';
+            iframe.src = '/gallery?mode=select&token=' + encodeURIComponent(token);
+            
+            modalBody.appendChild(iframe);
+            modalContent.appendChild(modalHeader);
+            modalContent.appendChild(modalBody);
+            modal.appendChild(modalContent);
+            
+            document.body.appendChild(modal);
+            
+            // 监听来自 iframe 的消息（实例隔离 + token + origin 校验）
+            const origin = window.location.origin;
+            const onMessage = function(event) {
+                if (event.origin !== origin) return;
+                if (!event.data || event.data.type !== 'imageSelected') return;
+                if (event.data.token !== token) return;
+                const imageUrl = event.data.url;
+                updateImageField(container, imageUrl);
+                closeImageGallery();
+                window.removeEventListener('message', onMessage);
+            };
+            window.addEventListener('message', onMessage);
+            
+            // 点击模态框背景关闭
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeImageGallery();
+                }
+            });
+        }
+        
+        function closeImageGallery() {
+            const modal = document.getElementById('imageGalleryModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        function updateImageField(container, imageUrl) {
+            if (!container) return;
+            
+            // 更新预览图片
+            const preview = container.querySelector('.current-image-preview');
+            const placeholder = container.querySelector('.no-image-placeholder');
+            
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            let img = preview.querySelector('img');
+            if (!img) {
+                img = document.createElement('img');
+                img.style.cssText = 'max-width: 150px; max-height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; margin-bottom: 10px;';
+                preview.appendChild(img);
+            }
+            
+            img.src = imageUrl;
+            img.alt = '当前图片';
+            
+            // 更新输入字段（TextType）
+            const inputField = container.querySelector('input, textarea');
+            if (inputField) {
+                inputField.value = imageUrl;
+            }
+            
+            // 更新按钮文本
+            const selectBtn = container.querySelector('.btn-primary');
+            if (selectBtn) {
+                selectBtn.textContent = '更换图片';
+            }
+            
+            // 显示清除按钮
+            let clearBtn = container.querySelector('.btn-danger');
+            if (!clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = 'btn btn-danger btn-sm ms-2';
+                clearBtn.textContent = '清除';
+                clearBtn.onclick = () => clearImage(clearBtn);
+                selectBtn.parentNode.insertBefore(clearBtn, selectBtn.nextSibling);
+            }
+        }
+        
+        function clearImage(triggerBtn) {
+            const container = triggerBtn.closest('.image-gallery-field-container');
+            if (!container) return;
+            
+            // 清除预览图片
+            const preview = container.querySelector('.current-image-preview');
+            const img = preview.querySelector('img');
+            
+            if (img) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'no-image-placeholder';
+                placeholder.style.cssText = 'width: 150px; height: 100px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; color: #999; margin-bottom: 10px; border-radius: 4px;';
+                placeholder.textContent = '无图片';
+                
+                preview.replaceChild(placeholder, img);
+            }
+            
+            // 清除输入字段
+            const inputField = container.querySelector('input, textarea');
+            if (inputField) {
+                inputField.value = '';
+            }
+            
+            // 更新按钮文本
+            const selectBtn = container.querySelector('.btn-primary');
+            if (selectBtn) {
+                selectBtn.textContent = '选择图片';
+            }
+            
+            // 隐藏清除按钮
+            const clearBtn = container.querySelector('.btn-danger');
+            if (clearBtn) {
+                clearBtn.remove();
+            }
+        }
+        
+        // ESC键关闭模态框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageGallery();
+            }
+        });
+    }
+    </script>
+{% endif %}

@@ -1,0 +1,84 @@
+:root {
+    --tinymce-media-picker-max-width: min(1680px, 98vw);
+    --tinymce-media-picker-body-height: min(80vh, 720px);
+}
+
+.ea-tiny-editor-content {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.ea-tiny-editor-hidden {
+    display: none !important;
+}
+
+#tinyMceMediaPickerModal .modal-dialog {
+    max-width: var(--tinymce-media-picker-max-width);
+}
+
+#tinyMceMediaPickerModal .modal-body {
+    position: relative;
+    padding: 0;
+    min-height: 480px;
+    height: var(--tinymce-media-picker-body-height);
+}
+
+#tinyMceMediaPickerModalIframe,
+#tinyMceMediaPickerModal iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background-color: #f8f9fa;
+}
+
+#tinyMceMediaPickerModal .modal-body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.75);
+    z-index: 5;
+    transition: opacity 0.2s ease;
+}
+
+#tinyMceMediaPickerModal .modal-body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0.2em solid rgba(0, 0, 0, 0.15);
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: tinymce-spinner-border 0.75s linear infinite;
+    z-index: 6;
+}
+
+#tinyMceMediaPickerModal.iframe-loaded .modal-body::before,
+#tinyMceMediaPickerModal.iframe-loaded .modal-body::after {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tox-tinymce {
+    border-radius: 0.5rem;
+    border-color: #ced4da;
+}
+
+.tox-tinymce .tox-statusbar__branding {
+    display: none;
+}
+
+.tox-notifications-container {
+    display: none !important;
+}
+
+@keyframes tinymce-spinner-border {
+    to {
+        transform: rotate(360deg);
+    }
+}

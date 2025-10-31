@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{{ asset('bundles/filestorage/css/image-gallery.css') }}" rel="stylesheet">
+</head>
+<body data-select-mode="{{ app.request.get('mode') == 'select' ? 'true' : 'false' }}">
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-folder-btn" onclick="showCreateFolderModal()">
+                    <i class="bi bi-plus-lg me-2"></i>新建文件夹
+                </button>
+            </div>
+            <div class="folder-hint">
+                <i class="bi bi-info-circle me-1"></i>
+                <span>右键文件夹可展开操作菜单</span>
+            </div>
+            <div class="folder-tree" id="folderTree">
+                <div class="folder-item active" data-folder-id="all">
+                    <i class="folder-icon bi bi-collection"></i>
+                    <span>所有文件</span>
+                </div>
+                <div class="folder-item" data-folder-id="images">
+                    <i class="folder-icon bi bi-image"></i>
+                    <span>图片文件</span>
+                </div>
+                <div class="folder-item" data-folder-id="documents">
+                    <i class="folder-icon bi bi-file-text"></i>
+                    <span>文档文件</span>
+                </div>
+                <div class="folder-item" data-folder-id="videos">
+                    <i class="folder-icon bi bi-camera-video"></i>
+                    <span>视频文件</span>
+                </div>
+                <div class="folder-item" data-folder-id="recent">
+                    <i class="folder-icon bi bi-clock-history"></i>
+                    <span>最近上传</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <div class="search-box">
+                        <i class="bi bi-search text-muted"></i>
+                        <input type="text" placeholder="搜索文件..." id="searchInput">
+                    </div>
+                </div>
+                <div class="toolbar-right">
+                    <select class="btn-toolbar" id="yearFilter">
+                        <option value="">所有年份</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                    </select>
+                    <select class="btn-toolbar" id="monthFilter">
+                        <option value="">所有月份</option>
+                        <option value="01">1月</option>
+                        <option value="02">2月</option>
+                        <option value="03">3月</option>
+                        <option value="04">4月</option>
+                        <option value="05">5月</option>
+                        <option value="06">6月</option>
+                        <option value="07">7月</option>
+                        <option value="08">8月</option>
+                        <option value="09">9月</option>
+                        <option value="10">10月</option>
+                        <option value="11">11月</option>
+                        <option value="12">12月</option>
+                    </select>
+                    <button class="btn-toolbar btn-primary" onclick="showUploadArea()">
+                        <i class="bi bi-cloud-upload me-2"></i>上传文件
+                    </button>
+                </div>
+            </div>
+
+            <!-- 文件区域 -->
+            <div class="file-area">
+                <div class="file-header">
+                    <div class="breadcrumb" id="breadcrumb">
+                        <i class="bi bi-house me-2"></i>
+                        <span>所有文件</span>
+                    </div>
+                    <div class="file-stats" id="fileStats">
+                        加载中...
+                    </div>
+                </div>
+                <div class="file-hint">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <span>鼠标悬停文件右上角可显示操作菜单</span>
+                </div>
+                <div class="file-grid" id="fileGrid">
+                    <div class="empty-state">
+                        <i class="empty-icon bi bi-folder2-open"></i>
+                        <h5>暂无文件</h5>
+                        <p>点击上传文件按钮开始添加文件</p>
+                    </div>
+                </div>
+                <!-- 分页组件 -->
+                <div class="pagination-wrapper" id="paginationWrapper">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">第 1 页，共 1 页</span>
+                        <span class="pagination-total" id="paginationTotal">共 0 个文件</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" id="prevPage" onclick="changePage(currentPage - 1)" disabled>
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <div class="pagination-pages" id="paginationPages">
+                            <!-- 页码按钮将通过JavaScript生成 -->
+                        </div>
+                        <button class="pagination-btn" id="nextPage" onclick="changePage(currentPage + 1)" disabled>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传区域背景遮罩 -->
+    <div class="upload-backdrop" id="uploadBackdrop" onclick="hideUploadArea()"></div>
+
+    <!-- 上传区域 -->
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-content">
+            <div class="upload-icon-wrapper">
+                <div class="upload-icon bi bi-cloud-upload"></div>
+            </div>
+            <div class="upload-text">
+                <h4>拖拽文件到此处上传</h4>
+                <p>或点击选择文件</p>
+            </div>
+            <input type="file" id="fileInput" multiple hidden>
+            <div class="upload-actions">
+                <button class="upload-btn-primary" onclick="document.getElementById('fileInput').click()">
+                    <i class="bi bi-folder-plus"></i>
+                    选择文件
+                </button>
+                <button class="upload-btn-secondary" onclick="hideUploadArea()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件夹模态框 -->
+    <div class="modal-backdrop" id="createFolderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">新建文件夹</h3>
+            </div>
+            <form id="createFolderForm">
+                <div class="form-group">
+                    <label class="form-label" for="folderName">文件夹名称</label>
+                    <input type="text" class="form-control" id="folderName" placeholder="请输入文件夹名称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="folderDescription">描述（可选）</label>
+                    <input type="text" class="form-control" id="folderDescription" placeholder="请输入描述">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-toolbar" onclick="hideCreateFolderModal()">取消</button>
+                    <button type="submit" class="btn-toolbar btn-primary">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="editFolder()">
+            <i class="bi bi-pencil"></i>
+            <span>编辑</span>
+        </div>
+        <div class="context-menu-item danger" onclick="deleteFolder()">
+            <i class="bi bi-trash"></i>
+            <span>删除</span>
+        </div>
+    </div>
+
+    <!-- 编辑文件夹模态框 -->
+    <div class="modal-backdrop" id="editFolderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑文件夹</h3>
+            </div>
+            <form id="editFolderForm">
+                <div class="form-group">
+                    <label class="form-label" for="editFolderName">文件夹名称</label>
+                    <input type="text" class="form-control" id="editFolderName" placeholder="请输入文件夹名称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="editFolderDescription">描述（可选）</label>
+                    <input type="text" class="form-control" id="editFolderDescription" placeholder="请输入描述">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-toolbar" onclick="hideEditFolderModal()">取消</button>
+                    <button type="submit" class="btn-toolbar btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('/bundles/filestorage/js/image-gallery.js') }}"></script>
+</body>
+</html>
