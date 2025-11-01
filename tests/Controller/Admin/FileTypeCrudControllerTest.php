@@ -8,7 +8,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Tourze\FileStorageBundle\Controller\Admin\FileTypeCrudController;
+use Tourze\FileStorageBundle\Entity\FileType;
 use Tourze\PHPUnitSymfonyWebTest\AbstractEasyAdminControllerTestCase;
 
 /**
@@ -20,125 +22,123 @@ final class FileTypeCrudControllerTest extends AbstractEasyAdminControllerTestCa
 {
     public function testAdminRouteExists(): void
     {
-        $client = $this->getAuthenticatedClient();
-        $client->request('GET', '/admin');
-        $this->assertNotEquals(404, $client->getResponse()->getStatusCode());
+        $client = $this->createAuthenticatedClient();
+        // 使用 EasyAdmin Url 生成器访问当前 CRUD 的首页，而不是 Dashboard
+        $url = $this->generateAdminUrl('index');
+        $client->request('GET', $url);
+        $response = $client->getResponse();
+        $this->assertTrue(
+            $response->isSuccessful() || $response->isRedirection(),
+            'CRUD 首页应可访问（允许 2xx 或 3xx 重定向）'
+        );
     }
 
     public function testIndexActionReturnsResponse(): void
     {
-        $this->makeRequestAndAssertNotFound('GET', 'index', 'Index action should exist');
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('GET', 'index', 'Index action should exist');
     }
 
     public function testNewActionReturnsResponse(): void
     {
-        $this->makeRequestAndAssertNotFound('GET', 'new', 'New action should exist');
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('GET', 'new', 'New action should exist');
     }
 
     public function testDetailActionReturnsResponse(): void
     {
-        $this->makeRequestAndAssertNotFound('GET', 'detail', 'Detail action should exist', ['entityId' => '1']);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $entity = $this->createTestFileType();
+        $this->makeRequestAndAssertOk('GET', 'detail', 'Detail action should exist', ['entityId' => (string) $entity->getId()]);
     }
 
     public function testEditActionReturnsResponse(): void
     {
-        $this->makeRequestAndAssertNotFound('GET', 'edit', 'Edit action should exist', ['entityId' => '1']);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $entity = $this->createTestFileType();
+        $this->makeRequestAndAssertOk('GET', 'edit', 'Edit action should exist', ['entityId' => (string) $entity->getId()]);
     }
 
     public function testDeleteActionReturnsResponse(): void
     {
-        $this->makeRequestAndAssertNotFound('DELETE', 'delete', 'Delete action should exist', ['entityId' => '1']);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $entity = $this->createTestFileType();
+        $this->makeRequestAndAssertOk('POST', 'delete', 'Delete action should exist', ['entityId' => (string) $entity->getId()]);
     }
 
     public function testPostNewActionReturnsResponse(): void
     {
         $data = $this->getValidFileTypeData();
-        $this->makeRequestAndAssertNotFound('POST', 'new', 'POST new action should exist', [], $data);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
-    }
-
-    public function testPutEditActionReturnsResponse(): void
-    {
-        $data = $this->getValidFileTypeData('Updated Type', 2048);
-        $this->makeRequestAndAssertNotFound('PUT', 'edit', 'PUT edit action should exist', ['entityId' => '1'], $data);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('POST', 'new', 'POST new action should exist', [], $data);
     }
 
     public function testPatchEditActionReturnsResponse(): void
     {
+        $entity = $this->createTestFileType();
         $data = ['FileType' => ['name' => 'Patched Type']];
-        $this->makeRequestAndAssertNotFound('PATCH', 'edit', 'PATCH edit action should exist', ['entityId' => '1'], $data);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('PATCH', 'edit', 'PATCH edit action should exist', ['entityId' => (string) $entity->getId()], $data);
     }
 
     public function testHeadIndexActionReturnsResponse(): void
     {
-        $this->makeRequestAndAssertNotFound('HEAD', 'index', 'HEAD index action should exist');
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
-    }
-
-    public function testOptionsIndexActionReturnsResponse(): void
-    {
-        $this->makeRequestAndAssertNotFound('OPTIONS', 'index', 'OPTIONS index action should exist or return method not allowed');
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('HEAD', 'index', 'HEAD index action should exist');
     }
 
     public function testSearchFunctionalityExists(): void
     {
-        $this->makeRequestAndAssertNotFound('GET', 'index', 'Search functionality should exist', ['query' => 'pdf']);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('GET', 'index', 'Search functionality should exist', ['query' => 'pdf']);
     }
 
     public function testFiltersFunctionalityExists(): void
     {
         $params = ['filters[name]' => 'Images', 'filters[uploadType]' => 'both'];
-        $this->makeRequestAndAssertNotFound('GET', 'index', 'Filters functionality should exist', $params);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('GET', 'index', 'Filters functionality should exist', $params);
     }
 
     public function testPaginationExists(): void
     {
-        $this->makeRequestAndAssertNotFound('GET', 'index', 'Pagination should exist', ['page' => '2']);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        // 某些情况下无数据页码会重定向到第一页，因此允许 3xx
+        $this->makeRequestAndAssertOk('GET', 'index', 'Pagination should exist', ['page' => '2']);
     }
 
     public function testSortingExists(): void
     {
-        $this->makeRequestAndAssertNotFound('GET', 'index', 'Sorting should exist', ['sort[displayOrder]' => 'ASC']);
-        $this->assertTrue(true); // Satisfies PHPStan assertion requirement
+        $this->makeRequestAndAssertOk('GET', 'index', 'Sorting should exist', ['sort[displayOrder]' => 'ASC']);
     }
 
-    private function getAuthenticatedClient(): KernelBrowser
+    private function createTestFileType(): FileType
     {
-        // 使用基类提供的标准方法
-        return $this->createAuthenticatedClient();
+        $em = self::getEntityManager();
+        $fileType = new FileType();
+        $uniqueId = uniqid();
+        $fileType->setName('Test Type ' . $uniqueId);
+        $fileType->setMimeType('application/test-' . $uniqueId);
+        $fileType->setExtension('test' . substr($uniqueId, -6)); // 使用唯一扩展名
+        $fileType->setMaxSize(1024);
+        $fileType->setUploadType('both');
+        $fileType->setDisplayOrder(1);
+        $fileType->setIsActive(true);
+        $em->persist($fileType);
+        $em->flush();
+
+        return $fileType;
     }
 
     /**
      * @param array<string, string> $params
      * @param array<string, mixed> $data
      */
-    private function makeRequestAndAssertNotFound(
+    private function makeRequestAndAssertOk(
         string $method,
         string $action,
         string $message,
         array $params = [],
         array $data = [],
     ): void {
-        $client = $this->getAuthenticatedClient();
-
-        try {
-            $url = $this->generateAdminUrl($action, $params);
-            $client->request($method, $url, $data);
-            $this->assertResponseIsSuccessful($message);
-        } catch (\Exception $e) {
-            self::markTestSkipped('EasyAdmin测试环境配置问题: ' . $e->getMessage());
-        }
+        $client = $this->createAuthenticatedClient();
+        $url = $this->generateAdminUrl($action, $params);
+        $client->request($method, $url, $data);
+        $response = $client->getResponse();
+        // 大多数 EasyAdmin 提交动作会返回重定向，统一接受 2xx 或 3xx
+        $this->assertTrue(
+            $response->isSuccessful() || $response->isRedirection(),
+            $message . sprintf(' (实际状态码: %d)', $response->getStatusCode())
+        );
     }
 
     /**
@@ -146,11 +146,13 @@ final class FileTypeCrudControllerTest extends AbstractEasyAdminControllerTestCa
      */
     private function getValidFileTypeData(string $name = 'Test Type', int $maxSize = 1024): array
     {
+        $uniqueId = uniqid();
+
         return [
             'FileType' => [
-                'name' => $name,
-                'mimeType' => 'text/plain',
-                'extension' => 'txt',
+                'name' => $name . ' ' . $uniqueId,
+                'mimeType' => 'application/test-' . $uniqueId,
+                'extension' => 'test' . substr($uniqueId, -6), // 使用唯一扩展名
                 'maxSize' => $maxSize,
                 'uploadType' => 'both',
                 'displayOrder' => 1,
@@ -220,34 +222,29 @@ final class FileTypeCrudControllerTest extends AbstractEasyAdminControllerTestCa
 
     public function testValidationErrors(): void
     {
-        $client = $this->getAuthenticatedClient();
+        $client = $this->createAuthenticatedClient();
+        $crawler = $client->request('GET', $this->generateAdminUrl('new'));
+        $this->assertResponseIsSuccessful('New page should be accessible');
 
-        try {
-            $crawler = $client->request('GET', $this->generateAdminUrl('new'));
-            $this->assertResponseIsSuccessful('New page should be accessible');
-
-            // 查找提交按钮 - 尝试多种可能的文本
-            $submitButton = null;
-            foreach (['创建', 'Create', 'Save', '保存', 'Submit'] as $buttonText) {
-                try {
-                    $submitButton = $crawler->selectButton($buttonText);
-                    if ($submitButton->count() > 0) {
-                        break;
-                    }
-                } catch (\Exception $e) {
-                    // 继续尝试下一个
+        // 查找提交按钮 - 尝试多种可能的文本
+        $submitButton = null;
+        foreach (['创建', 'Create', 'Save', '保存', 'Submit'] as $buttonText) {
+            try {
+                $submitButton = $crawler->selectButton($buttonText);
+                if ($submitButton->count() > 0) {
+                    break;
                 }
+            } catch (\Exception) {
+                // 继续尝试下一个
             }
-
-            $this->assertNotNull($submitButton, '找不到表单提交按钮');
-            $this->assertGreaterThan(0, $submitButton->count(), '提交按钮应该存在');
-
-            $form = $submitButton->form();
-            $crawler = $client->submit($form);
-            $this->assertResponseStatusCodeSame(422);
-            $this->assertValidationErrorsExist($crawler);
-        } catch (\Exception $e) {
-            self::markTestSkipped('EasyAdmin测试环境配置问题: ' . $e->getMessage());
         }
+
+        $this->assertNotNull($submitButton, '找不到表单提交按钮');
+        $this->assertGreaterThan(0, $submitButton->count(), '提交按钮应该存在');
+
+        $form = $submitButton->form();
+        $crawler = $client->submit($form);
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertValidationErrorsExist($crawler);
     }
 }

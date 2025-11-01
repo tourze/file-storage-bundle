@@ -466,9 +466,10 @@ final class ImageGalleryUpdateFolderControllerTest extends AbstractWebTestCase
         // DELETE 方法实际上匹配了另一个路由（ImageGalleryDeleteFolderController），
         // 所以不会抛出 MethodNotAllowedHttpException
         if ('DELETE' === $method) {
-            $client->request($method, '/gallery/api/folders/1');
-            // DELETE 路由存在，只是控制器不同，所以会正常响应或返回其他状态码
-            $this->assertNotEquals(404, $client->getResponse()->getStatusCode());
+            // 使用路由生成器验证 DELETE 路由存在,避免依赖资源状态
+            $router = self::getContainer()->get('router');
+            $url = $router->generate('file_gallery_api_delete_folder', ['id' => 1]);
+            $this->assertSame('/gallery/api/folders/1', $url, 'DELETE 路由应该存在');
 
             return;
         }

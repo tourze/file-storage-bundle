@@ -7,6 +7,7 @@ namespace Tourze\FileStorageBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Tourze\AccessTokenBundle\AccessTokenBundle;
 use Tourze\BundleDependency\BundleDependencyInterface;
 use Tourze\DoctrineIpBundle\DoctrineIpBundle;
 use Tourze\DoctrineSnowflakeBundle\DoctrineSnowflakeBundle;
@@ -32,6 +33,7 @@ class FileStorageBundle extends Bundle implements BundleDependencyInterface
             EasyAdminImagePreviewFieldBundle::class => ['all' => true],
             CronJobBundle::class => ['all' => true],
             RoutingAutoLoaderBundle::class => ['all' => true],
+            AccessTokenBundle::class => ['all' => true],
         ];
     }
 

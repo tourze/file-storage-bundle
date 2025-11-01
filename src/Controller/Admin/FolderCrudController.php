@@ -18,7 +18,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use Tourze\FileStorageBundle\Entity\Folder;
 
-#[AdminCrud(routeName: 'file_storage_folder', routePath: '/file-storage/folder')]
+#[AdminCrud(routePath: '/file-storage/folder', routeName: 'file_storage_folder')]
 final class FolderCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

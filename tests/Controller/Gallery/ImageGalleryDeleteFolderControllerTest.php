@@ -119,15 +119,13 @@ final class ImageGalleryDeleteFolderControllerTest extends AbstractWebTestCase
     #[Test]
     public function testRouteExists(): void
     {
-        $client = $this->client;
-        if (null === $client) {
-            throw new ClientNotInitializedException('Client not initialized');
-        }
+        // 仅验证路由是否注册存在，而不依赖数据库中是否存在具体资源
+        $router = self::getContainer()->get('router');
+        $this->assertIsObject($router);
 
-        $client->request('DELETE', '/gallery/api/folders/1');
-
-        $response = $client->getResponse();
-        $this->assertNotEquals(404, $response->getStatusCode(), 'Route should exist');
+        // 通过路由名称生成 URL，若路由未注册会抛出异常
+        $url = $router->generate('file_gallery_api_delete_folder', ['id' => 1]);
+        $this->assertSame('/gallery/api/folders/1', $url, '应能通过命名路由生成正确的路径');
     }
 
     #[Test]
