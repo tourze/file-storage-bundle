@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tourze\FileStorageBundle\Controller\Gallery\ImageGalleryUpdateFolderController;
 use Tourze\FileStorageBundle\Entity\Folder;
 use Tourze\PHPUnitSymfonyWebTest\AbstractWebTestCase;
@@ -468,6 +469,7 @@ final class ImageGalleryUpdateFolderControllerTest extends AbstractWebTestCase
         if ('DELETE' === $method) {
             // 使用路由生成器验证 DELETE 路由存在,避免依赖资源状态
             $router = self::getContainer()->get('router');
+            $this->assertInstanceOf(UrlGeneratorInterface::class, $router);
             $url = $router->generate('file_gallery_api_delete_folder', ['id' => 1]);
             $this->assertSame('/gallery/api/folders/1', $url, 'DELETE 路由应该存在');
 

@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tourze\FileStorageBundle\Controller\Gallery\ImageGalleryDeleteFolderController;
 use Tourze\FileStorageBundle\Entity\Folder;
 use Tourze\FileStorageBundle\Exception\ClientNotInitializedException;
@@ -121,7 +122,7 @@ final class ImageGalleryDeleteFolderControllerTest extends AbstractWebTestCase
     {
         // 仅验证路由是否注册存在，而不依赖数据库中是否存在具体资源
         $router = self::getContainer()->get('router');
-        $this->assertIsObject($router);
+        $this->assertInstanceOf(UrlGeneratorInterface::class, $router);
 
         // 通过路由名称生成 URL，若路由未注册会抛出异常
         $url = $router->generate('file_gallery_api_delete_folder', ['id' => 1]);

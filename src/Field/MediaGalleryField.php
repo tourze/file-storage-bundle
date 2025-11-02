@@ -103,26 +103,77 @@ final class MediaGalleryField implements FieldInterface
         $items = [];
 
         foreach ($value as $item) {
-            if (is_string($item)) {
-                // 简单字符串，通过URL判断类型
-                $items[] = [
-                    'url' => $item,
-                    'type' => self::guessMediaType($item),
-                ];
-            } elseif (is_array($item) && isset($item['url'])) {
-                $items[] = [
-                    'url' => $item['url'],
-                    'type' => $item['type'] ?? self::guessMediaType($item['url']),
-                ];
-            } elseif (is_object($item) && property_exists($item, 'url')) {
-                $items[] = [
-                    'url' => $item->url,
-                    'type' => (property_exists($item, 'type') ? $item->type : null) ?? self::guessMediaType($item->url),
-                ];
+            $normalizedItem = self::normalizeItem($item);
+            if (null !== $normalizedItem) {
+                $items[] = $normalizedItem;
             }
         }
 
         return array_filter($items, static fn (array $v) => '' !== $v['url']);
+    }
+
+    /**
+     * @param mixed $item
+     * @return array{url: string, type: string}|null
+     */
+    private static function normalizeItem($item): ?array
+    {
+        if (is_string($item)) {
+            return self::normalizeStringItem($item);
+        }
+
+        if (is_array($item)) {
+            return self::normalizeArrayItem($item);
+        }
+
+        if (is_object($item)) {
+            return self::normalizeObjectItem($item);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{url: string, type: string}
+     */
+    private static function normalizeStringItem(string $item): array
+    {
+        return [
+            'url' => $item,
+            'type' => self::guessMediaType($item),
+        ];
+    }
+
+    /**
+     * @param array<mixed> $item
+     * @return array{url: string, type: string}|null
+     */
+    private static function normalizeArrayItem(array $item): ?array
+    {
+        if (!isset($item['url']) || !is_string($item['url'])) {
+            return null;
+        }
+
+        return [
+            'url' => $item['url'],
+            'type' => (isset($item['type']) && is_string($item['type'])) ? $item['type'] : self::guessMediaType($item['url']),
+        ];
+    }
+
+    /**
+     * @param object $item
+     * @return array{url: string, type: string}|null
+     */
+    private static function normalizeObjectItem(object $item): ?array
+    {
+        if (!property_exists($item, 'url')) {
+            return null;
+        }
+
+        return [
+            'url' => $item->url,
+            'type' => (property_exists($item, 'type') ? $item->type : null) ?? self::guessMediaType($item->url),
+        ];
     }
 
     /**

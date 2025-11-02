@@ -7,6 +7,7 @@ namespace Tourze\FileStorageBundle\Tests\Repository;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Tourze\FileStorageBundle\Entity\File;
 use Tourze\FileStorageBundle\Repository\FileRepository;
 use Tourze\PHPUnitSymfonyKernelTest\AbstractRepositoryTestCase;
@@ -53,9 +54,11 @@ final class FileRepositoryTest extends AbstractRepositoryTestCase
      */
     private function setBasicFileProperties(File $file, array $data): void
     {
+        /** @var string|null $originalName */
         $originalName = $data['originalName'] ?? 'test.pdf';
         $filePath = $data['filePath'] ?? '2024/01/test.pdf';
         $mimeType = $data['mimeType'] ?? 'application/pdf';
+        /** @var int|null $fileSize */
         $fileSize = $data['fileSize'] ?? 1024;
         $isActive = $data['isActive'] ?? true;
 
@@ -100,6 +103,7 @@ final class FileRepositoryTest extends AbstractRepositoryTestCase
     private function setOptionalProperties(File $file, array $data): void
     {
         if (isset($data['user'])) {
+            /** @var UserInterface|null $user */
             $user = $data['user'];
             $file->setUser($user);
         }

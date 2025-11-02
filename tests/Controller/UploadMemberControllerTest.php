@@ -48,7 +48,9 @@ final class UploadMemberControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertEquals('Authentication required', $data['error']);
 
         if (file_exists($testFilePath)) {
@@ -75,7 +77,9 @@ final class UploadMemberControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertTrue(
             'Authentication required' === $data['error'] || 'No file was uploaded' === $data['error'],
             'Should indicate auth required or no file uploaded'
@@ -110,7 +114,9 @@ final class UploadMemberControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertTrue(
             'Authentication required' === $data['error'] || 'File validation failed' === $data['error'],
             'Should indicate auth required or file validation failed'
@@ -146,7 +152,9 @@ final class UploadMemberControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertEquals('Authentication required', $data['error']);
     }
 
@@ -174,7 +182,9 @@ final class UploadMemberControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertEquals('Authentication required', $data['error']);
     }
 }

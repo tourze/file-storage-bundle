@@ -46,7 +46,9 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertEquals('No file was uploaded', $data['error']);
     }
 
@@ -90,11 +92,16 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
+        $this->assertIsBool($data['success']);
         $this->assertTrue($data['success']);
         $this->assertArrayHasKey('file', $data);
+        $this->assertIsArray($data['file']);
         $this->assertArrayHasKey('id', $data['file']);
+        $this->assertIsString($data['file']['originalName']);
         $this->assertStringStartsWith('test', $data['file']['originalName']);
         $this->assertStringEndsWith('.txt', $data['file']['originalName']);
+        $this->assertIsString($data['file']['mimeType']);
         $this->assertEquals('text/plain', $data['file']['mimeType']);
         $this->assertNotNull($data['file']['md5Hash']);
 
@@ -126,7 +133,9 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertEquals('No file was uploaded', $data['error']);
     }
 
@@ -161,7 +170,9 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
             $content = $response->getContent();
             $this->assertIsString($content);
             $data = json_decode($content, true);
+            $this->assertIsArray($data);
             $this->assertArrayHasKey('success', $data);
+            $this->assertIsBool($data['success']);
             $this->assertTrue($data['success']);
         } else {
             // 如果系统拒绝，验证错误响应
@@ -170,7 +181,9 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
             $content = $response->getContent();
             $this->assertIsString($content);
             $data = json_decode($content, true);
+            $this->assertIsArray($data);
             $this->assertArrayHasKey('error', $data);
+            $this->assertIsString($data['error']);
             $this->assertEquals('File validation failed', $data['error']);
         }
 
@@ -219,7 +232,9 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('error', $data);
+        $this->assertIsString($data['error']);
         $this->assertEquals('File validation failed', $data['error']);
 
         // Clean up - find and remove the entity safely
@@ -291,7 +306,9 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
             $content = $response->getContent();
             $this->assertIsString($content);
             $data = json_decode($content, true);
+            $this->assertIsArray($data);
             $this->assertArrayHasKey('success', $data);
+            $this->assertIsBool($data['success']);
             $this->assertTrue($data['success']);
         } else {
             // 如果系统拒绝，验证错误响应
@@ -299,7 +316,9 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
             $content = $response->getContent();
             $this->assertIsString($content);
             $data = json_decode($content, true);
+            $this->assertIsArray($data);
             $this->assertArrayHasKey('error', $data);
+            $this->assertIsString($data['error']);
             $this->assertEquals('File validation failed', $data['error']);
         }
 
@@ -355,9 +374,14 @@ final class UploadAnonymousControllerTest extends AbstractWebTestCase
         $content = $response->getContent();
         $this->assertIsString($content);
         $data = json_decode($content, true);
+        $this->assertIsArray($data);
+        $this->assertIsBool($data['success']);
         $this->assertTrue($data['success']);
         $this->assertArrayHasKey('file', $data);
+        $this->assertIsArray($data['file']);
+        $this->assertIsString($data['file']['originalName']);
         $this->assertStringStartsWith('test', $data['file']['originalName']);
+        $this->assertIsString($data['file']['mimeType']);
         $this->assertEquals('image/x-test-both', $data['file']['mimeType']);
 
         // Clean up - find and remove the entity safely
