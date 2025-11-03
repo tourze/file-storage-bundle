@@ -15,6 +15,7 @@ use Tourze\DoctrineTimestampBundle\DoctrineTimestampBundle;
 use Tourze\DoctrineTrackBundle\DoctrineTrackBundle;
 use Tourze\DoctrineUserBundle\DoctrineUserBundle;
 use Tourze\EasyAdminImagePreviewFieldBundle\EasyAdminImagePreviewFieldBundle;
+use Tourze\EasyAdminMenuBundle\EasyAdminMenuBundle;
 use Tourze\FileStorageBundle\DependencyInjection\Compiler\SecurityFirewallCompilerPass;
 use Tourze\RoutingAutoLoaderBundle\RoutingAutoLoaderBundle;
 use Tourze\Symfony\CronJob\CronJobBundle;
@@ -34,6 +35,7 @@ class FileStorageBundle extends Bundle implements BundleDependencyInterface
             CronJobBundle::class => ['all' => true],
             RoutingAutoLoaderBundle::class => ['all' => true],
             AccessTokenBundle::class => ['all' => true],
+            EasyAdminMenuBundle::class => ['all' => true],
         ];
     }
 
