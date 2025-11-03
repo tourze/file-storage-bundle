@@ -50,6 +50,7 @@ class MediaGalleryTransformer implements DataTransformerInterface
         try {
             assert(is_string($value)); // $value is validated by isValidInput
             $data = $this->decodeJsonValue($value);
+
             return $this->normalizeMediaItems($data);
         } catch (\JsonException $e) {
             throw new TransformationFailedException('Failed to decode media gallery data: ' . $e->getMessage(), 0, $e);

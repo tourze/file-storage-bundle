@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Form;
 use Tourze\FileStorageBundle\Controller\Admin\FolderCrudController;
+use Tourze\FileStorageBundle\Entity\Folder;
 use Tourze\PHPUnitSymfonyWebTest\AbstractEasyAdminControllerTestCase;
 
 /**
@@ -133,10 +134,10 @@ final class FolderCrudControllerTest extends AbstractEasyAdminControllerTestCase
         return self::getService(FolderCrudController::class);
     }
 
-    private function createTestFolder(): \Tourze\FileStorageBundle\Entity\Folder
+    private function createTestFolder(): Folder
     {
         $em = self::getEntityManager();
-        $folder = new \Tourze\FileStorageBundle\Entity\Folder();
+        $folder = new Folder();
         $folder->setTitle('Test Folder ' . uniqid());
         $folder->setIsActive(true);
         $em->persist($folder);
