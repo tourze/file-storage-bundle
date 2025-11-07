@@ -37,7 +37,7 @@ class TrixImagePicker {
         }
 
         const modalHTML = `
-            <div class="modal fade" id="${this.modalId}" tabindex="-1" aria-labelledby="${this.modalId}Label" aria-hidden="true">
+            <div class="modal fade" id="${this.modalId}" tabindex="-1" aria-labelledby="${this.modalId}Label" aria-hidden="true" style="z-index: 1060;">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -148,8 +148,8 @@ class TrixImagePicker {
             if (event.target.matches('[data-trix-action="x-image-gallery"]') ||
                 event.target.closest('[data-trix-action="x-image-gallery"]')) {
 
+                // 只阻止默认行为，不阻止事件传播，避免影响其他表单字段
                 event.preventDefault();
-                event.stopPropagation();
 
                 console.log('图片选择按钮被点击');
 
@@ -208,8 +208,8 @@ class TrixImagePicker {
 
         document.addEventListener('trix-attachment-add', (event) => {
             const editorEl = event.target.closest('trix-editor');
-            if (editorEl) {
-                setTimeout(() => self.ensureVideoControlsForEditor(editorEl), 50);
+            if (editorEl && editorEl.dataset.trixVideoProcessing !== '1') {
+                setTimeout(() => self.ensureVideoControlsForEditor(editorEl), 100);
             }
         });
     }
@@ -224,22 +224,29 @@ class TrixImagePicker {
         const existingEditors = document.querySelectorAll('trix-editor');
         console.log(`Found ${existingEditors.length} existing trix-editor(s)`);
 
-        existingEditors.forEach((editor) => {
-            this.addImagePickerButton(editor);
-
-            // 监听附件变化，但使用防抖
-            editor.addEventListener('trix-attachment-add', () => {
-                setTimeout(() => this.ensureVideoControlsForEditor(editor), 50);
-            });
-            editor.addEventListener('trix-attachment-remove', () => {
-                setTimeout(() => this.ensureVideoControlsForEditor(editor), 50);
-            });
-
-            // 延迟处理，确保编辑器完全初始化
+        existingEditors.forEach((editor, index) => {
+            // 错峰初始化，避免同时处理多个编辑器导致的性能问题
             setTimeout(() => {
-                this.ensureVideoControlsForEditor(editor);
-                this.setupVideoObserver(editor);
-            }, 100);
+                this.addImagePickerButton(editor);
+
+                // 监听附件变化，但使用防抖并检查处理状态
+                editor.addEventListener('trix-attachment-add', () => {
+                    if (editor.dataset.trixVideoProcessing !== '1') {
+                        setTimeout(() => this.ensureVideoControlsForEditor(editor), 100);
+                    }
+                });
+                editor.addEventListener('trix-attachment-remove', () => {
+                    if (editor.dataset.trixVideoProcessing !== '1') {
+                        setTimeout(() => this.ensureVideoControlsForEditor(editor), 100);
+                    }
+                });
+
+                // 延迟处理，确保编辑器完全初始化
+                setTimeout(() => {
+                    this.ensureVideoControlsForEditor(editor);
+                    this.setupVideoObserver(editor);
+                }, 200);
+            }, index * 100); // 每个编辑器延迟100ms
         });
 
         // 监听新的 Trix 编辑器初始化
@@ -247,21 +254,28 @@ class TrixImagePicker {
             console.log('Trix editor initialized:', event.target);
             const editor = event.target;
 
-            this.addImagePickerButton(editor);
-
-            // 监听附件变化，但使用防抖
-            editor.addEventListener('trix-attachment-add', () => {
-                setTimeout(() => this.ensureVideoControlsForEditor(editor), 50);
-            });
-            editor.addEventListener('trix-attachment-remove', () => {
-                setTimeout(() => this.ensureVideoControlsForEditor(editor), 50);
-            });
-
-            // 延迟处理，确保编辑器完全初始化
+            // 延迟处理新编辑器，给EasyAdmin更多时间处理其他表单字段
             setTimeout(() => {
-                this.ensureVideoControlsForEditor(editor);
-                this.setupVideoObserver(editor);
-            }, 100);
+                this.addImagePickerButton(editor);
+
+                // 监听附件变化，但使用防抖并检查处理状态
+                editor.addEventListener('trix-attachment-add', () => {
+                    if (editor.dataset.trixVideoProcessing !== '1') {
+                        setTimeout(() => this.ensureVideoControlsForEditor(editor), 100);
+                    }
+                });
+                editor.addEventListener('trix-attachment-remove', () => {
+                    if (editor.dataset.trixVideoProcessing !== '1') {
+                        setTimeout(() => this.ensureVideoControlsForEditor(editor), 100);
+                    }
+                });
+
+                // 延迟处理，确保编辑器完全初始化
+                setTimeout(() => {
+                    this.ensureVideoControlsForEditor(editor);
+                    this.setupVideoObserver(editor);
+                }, 300);
+            }, 500);
         });
     }
 
@@ -535,6 +549,12 @@ class TrixImagePicker {
             return;
         }
 
+        // 添加标记避免重复处理
+        if (root.dataset.trixVideoProcessing === '1') {
+            return;
+        }
+        root.dataset.trixVideoProcessing = '1';
+
         const enforce = (target) => {
             if (!target) {
                 return;
@@ -588,28 +608,50 @@ class TrixImagePicker {
                 placeholder.dataset.videoUrl = url;
                 placeholder.dataset.videoMime = mime;
 
-                // 渲染实际的视频元素
-                placeholder.innerHTML = '';
-
-                const video = document.createElement('video');
-                video.controls = true;
-                video.preload = 'metadata';
-                video.style.maxWidth = '100%';
-                video.style.height = 'auto';
-                video.setAttribute('playsinline', '');
-                video.setAttribute('webkit-playsinline', '');
-                video.setAttribute('controlslist', 'nodownload');
-                video.dataset.trixProcessed = '1';
-
-                const source = document.createElement('source');
-                source.src = url;
-                if (mime) {
-                    source.type = mime;
+                // 临时断开观察者，避免DOM操作触发无限循环
+                const observer = this.videoObservers.get(target.closest('trix-editor'));
+                if (observer) {
+                    observer.disconnect();
                 }
-                video.appendChild(source);
 
-                placeholder.appendChild(video);
-                placeholder.dataset.videoRendered = '1';
+                try {
+                    // 渲染实际的视频元素
+                    placeholder.innerHTML = '';
+
+                    const video = document.createElement('video');
+                    video.controls = true;
+                    video.preload = 'metadata';
+                    video.style.maxWidth = '100%';
+                    video.style.height = 'auto';
+                    video.setAttribute('playsinline', '');
+                    video.setAttribute('webkit-playsinline', '');
+                    video.setAttribute('controlslist', 'nodownload');
+                    video.dataset.trixProcessed = '1';
+
+                    const source = document.createElement('source');
+                    source.src = url;
+                    if (mime) {
+                        source.type = mime;
+                    }
+                    video.appendChild(source);
+
+                    placeholder.appendChild(video);
+                    placeholder.dataset.videoRendered = '1';
+                } finally {
+                    // 延迟重新连接观察者
+                    if (observer) {
+                        setTimeout(() => {
+                            const editor = target.closest('trix-editor');
+                            if (editor) {
+                                observer.observe(editor, {
+                                    childList: true,
+                                    subtree: true,
+                                    attributes: false,
+                                });
+                            }
+                        }, 100);
+                    }
+                }
             });
 
             // 2. 处理直接的视频元素（查看模式）
@@ -723,19 +765,28 @@ class TrixImagePicker {
             });
         };
 
-        enforce(root);
-        if (root.shadowRoot) {
-            enforce(root.shadowRoot);
-        }
+        try {
+            enforce(root);
+            if (root.shadowRoot) {
+                enforce(root.shadowRoot);
+            }
 
-        const controller = root.editor || root.trixEditor;
-        if (controller) {
-            if (controller.element) {
-                enforce(controller.element);
+            const controller = root.editor || root.trixEditor;
+            if (controller) {
+                if (controller.element) {
+                    enforce(controller.element);
+                }
+                if (controller.composition && controller.composition.element) {
+                    enforce(controller.composition.element);
+                }
             }
-            if (controller.composition && controller.composition.element) {
-                enforce(controller.composition.element);
-            }
+        } finally {
+            // 处理完成后移除标记，但延迟一段时间避免立即重新处理
+            setTimeout(() => {
+                if (root && root.dataset) {
+                    root.dataset.trixVideoProcessing = '0';
+                }
+            }, 1000);
         }
     }
 
@@ -758,6 +809,11 @@ class TrixImagePicker {
         }
 
         const observer = new MutationObserver((mutations) => {
+            // 检查是否正在处理中，避免无限循环
+            if (editor.dataset.trixVideoProcessing === '1') {
+                return;
+            }
+
             let shouldProcess = false;
 
             mutations.forEach((mutation) => {
@@ -765,6 +821,13 @@ class TrixImagePicker {
                     // 检查是否有相关的视频元素被添加
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType === Node.ELEMENT_NODE) {
+                            // 忽略我们自己创建的元素，避免无限循环
+                            if (node.dataset?.trixProcessed === '1' || 
+                                node.dataset?.videoRendered === '1' ||
+                                node.closest?.('[data-trix-video-processing="1"]')) {
+                                return;
+                            }
+
                             // 检查是否是需要处理的元素
                             if (node.tagName === 'VIDEO' && node.dataset.trixProcessed !== '1') {
                                 shouldProcess = true;
@@ -792,24 +855,32 @@ class TrixImagePicker {
                 }
 
                 const timer = setTimeout(() => {
-                    this.ensureVideoControlsForEditor(editor);
+                    // 再次检查是否正在处理中
+                    if (editor.dataset.trixVideoProcessing !== '1') {
+                        this.ensureVideoControlsForEditor(editor);
+                    }
                     this.debounceTimers.delete(editorId);
-                }, 200); // 200ms防抖，平衡性能和响应性
+                }, 500); // 增加防抖时间到500ms
 
                 this.debounceTimers.set(editorId, timer);
             }
         });
 
-        // 观察编辑器和其子元素
+        // 观察编辑器和其子元素，但排除属性变化避免无限循环
         observer.observe(editor, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: false, // 关闭属性观察避免data-*属性变化引起循环
         });
 
         this.videoObservers.set(editor, observer);
 
-        // 立即处理一次现有的视频元素
-        setTimeout(() => this.ensureVideoControlsForEditor(editor), 100);
+        // 立即处理一次现有的视频元素，但延迟执行
+        setTimeout(() => {
+            if (editor.dataset.trixVideoProcessing !== '1') {
+                this.ensureVideoControlsForEditor(editor);
+            }
+        }, 200);
     }
 
     triggerEditorChange() {
@@ -882,14 +953,24 @@ if (typeof window !== 'undefined') {
     window.TrixImagePicker = TrixImagePicker;
 }
 
-// 初始化图片选择器
+// 初始化图片选择器 - 延迟执行以避免与EasyAdmin表单字段冲突
+function initializeTrixImagePicker() {
+    // 检查是否有Trix编辑器存在
+    if (document.querySelector('trix-editor')) {
+        new TrixImagePicker();
+    } else {
+        // 如果没有Trix编辑器，稍后重试
+        setTimeout(initializeTrixImagePicker, 500);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    // 确保在页面完全加载后初始化
-    new TrixImagePicker();
+    // 延迟初始化，给EasyAdmin足够时间设置表单字段
+    setTimeout(initializeTrixImagePicker, 1000);
 });
 
 // 如果页面已经加载完成（动态加载的情况）
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    new TrixImagePicker();
+    setTimeout(initializeTrixImagePicker, 1000);
 }
 
