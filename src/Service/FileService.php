@@ -204,7 +204,7 @@ readonly class FileService
         return $publicUrl;
     }
 
-    public function getFile(int $id): ?File
+    public function getFile(string $id): ?File
     {
         return $this->fileRepository->find($id);
     }
@@ -219,7 +219,7 @@ readonly class FileService
         return $this->fileTypeRepository;
     }
 
-    public function getActiveFile(int $id): ?File
+    public function getActiveFile(string $id): ?File
     {
         $file = $this->fileRepository->find($id);
 

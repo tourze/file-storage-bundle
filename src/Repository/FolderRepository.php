@@ -14,7 +14,7 @@ use Tourze\PHPUnitSymfonyKernelTest\Attribute\AsRepository;
  * @extends ServiceEntityRepository<Folder>
  */
 #[AsRepository(entityClass: Folder::class)]
-class FolderRepository extends ServiceEntityRepository
+final class FolderRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

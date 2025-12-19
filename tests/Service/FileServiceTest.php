@@ -6,7 +6,6 @@ namespace Tourze\FileStorageBundle\Tests\Service;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Tourze\FileStorageBundle\Entity\File;
 use Tourze\FileStorageBundle\Exception\FileValidationException;
@@ -20,9 +19,25 @@ use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 #[RunTestsInSeparateProcesses]
 final class FileServiceTest extends AbstractIntegrationTestCase
 {
+    /**
+     * @var array<string>
+     */
+    private array $tempFiles = [];
+
     protected function onSetUp(): void
     {
         // Required by AbstractIntegrationTestCase
+    }
+
+    protected function onTearDown(): void
+    {
+        // 清理临时文件
+        foreach ($this->tempFiles as $tempFile) {
+            if (file_exists($tempFile)) {
+                @unlink($tempFile);
+            }
+        }
+        $this->tempFiles = [];
     }
 
     public function testServiceIsAvailable(): void
@@ -128,8 +143,8 @@ final class FileServiceTest extends AbstractIntegrationTestCase
     {
         $fileService = self::getService(FileService::class);
 
-        // 创建一个模拟的上传文件
-        $uploadedFile = $this->createMockUploadedFile('test.txt', 'text/plain', 100);
+        // 创建一个真实的临时上传文件
+        $uploadedFile = $this->createRealUploadedFile('test.txt', 'test content', 'text/plain');
 
         // 这个测试可能会抛出异常，取决于系统中是否配置了对应的文件类型
         // 我们主要测试方法能够被调用而不崩溃
@@ -168,16 +183,13 @@ final class FileServiceTest extends AbstractIntegrationTestCase
         $fileService = self::getService(FileService::class);
 
         // 测试获取不存在的文件
-        $activeFile = $fileService->getActiveFile(99999);
+        $activeFile = $fileService->getActiveFile('99999');
         $this->assertNull($activeFile);
     }
 
     public function testUploadFileMethod(): void
     {
         $fileService = self::getService(FileService::class);
-
-        // 创建一个模拟的上传文件
-        $uploadedFile = $this->createMockUploadedFile('test-upload.txt', 'text/plain', 50);
 
         // 由于我们没有实际的文件系统配置，这个测试主要验证方法的存在性
         // 在实际环境中，这可能会因为文件系统配置而失败，但我们主要关注测试覆盖率
@@ -189,28 +201,22 @@ final class FileServiceTest extends AbstractIntegrationTestCase
     }
 
     /**
-     * 创建模拟的上传文件
+     * 创建真实的上传文件
      */
-    private function createMockUploadedFile(string $originalName, string $mimeType, int $size): MockObject&UploadedFile
+    private function createRealUploadedFile(string $originalName, string $content, string $mimeType): UploadedFile
     {
-        $uploadedFile = $this->createMock(UploadedFile::class);
+        // 创建临时文件
+        $tempFile = sys_get_temp_dir() . '/' . uniqid('test_upload_') . '_' . $originalName;
+        file_put_contents($tempFile, $content);
+        $this->tempFiles[] = $tempFile;
 
-        $uploadedFile->method('getClientOriginalName')
-            ->willReturn($originalName)
-        ;
-
-        $uploadedFile->method('getClientMimeType')
-            ->willReturn($mimeType)
-        ;
-
-        $uploadedFile->method('getSize')
-            ->willReturn($size)
-        ;
-
-        $uploadedFile->method('guessExtension')
-            ->willReturn(pathinfo($originalName, PATHINFO_EXTENSION))
-        ;
-
-        return $uploadedFile;
+        // 创建真实的 UploadedFile 对象
+        return new UploadedFile(
+            $tempFile,
+            $originalName,
+            $mimeType,
+            null,
+            true // test mode
+        );
     }
 }

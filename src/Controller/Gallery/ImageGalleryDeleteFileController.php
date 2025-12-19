@@ -20,7 +20,7 @@ final class ImageGalleryDeleteFileController extends AbstractController
     }
 
     #[Route(path: '/gallery/api/files/{id}', name: 'file_gallery_api_delete', methods: ['DELETE'], requirements: ['id' => '-?\d+'])]
-    public function __invoke(int $id, #[CurrentUser] ?UserInterface $user): JsonResponse
+    public function __invoke(string $id, #[CurrentUser] ?UserInterface $user): JsonResponse
     {
         $file = $this->fileService->getFile($id);
 

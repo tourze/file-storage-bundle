@@ -8,7 +8,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Tourze\SymfonyDependencyServiceLoader\AutoExtension;
 
-class FileStorageExtension extends AutoExtension implements PrependExtensionInterface
+final class FileStorageExtension extends AutoExtension implements PrependExtensionInterface
 {
     protected function getConfigDir(): string
     {

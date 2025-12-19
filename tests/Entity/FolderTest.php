@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tourze\FileStorageBundle\Tests\Entity;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\InMemoryUser;
 use Tourze\FileStorageBundle\Entity\File;
 use Tourze\FileStorageBundle\Entity\Folder;
 use Tourze\PHPUnitDoctrineEntity\AbstractEntityTestCase;
@@ -142,8 +142,8 @@ final class FolderTest extends AbstractEntityTestCase
         $folder = new Folder();
         $this->assertTrue($folder->isAnonymous());
 
-        $mockUser = $this->createMock(UserInterface::class);
-        $folder->setUser($mockUser);
+        $user = new InMemoryUser('testuser', 'password', ['ROLE_USER']);
+        $folder->setUser($user);
         $this->assertFalse($folder->isAnonymous());
     }
 

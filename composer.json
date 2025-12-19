@@ -6,6 +6,7 @@
   "require": {
     "ext-reflection": "*",
     "ext-spl": "*",
+    "chrisullyott/php-filesize": "^4.2",
     "doctrine/collections": "^2.3",
     "doctrine/data-fixtures": "^2.0",
     "doctrine/dbal": "^4.0",
@@ -24,8 +25,8 @@
     "symfony/doctrine-bridge": "^7.3",
     "symfony/event-dispatcher": "^7.3",
     "symfony/form": "^7.3",
-    "symfony/framework-bundle": "^7.3",
-    "symfony/http-foundation": "^7.3",
+    "symfony/framework-bundle": "^7.4",
+    "symfony/http-foundation": "^7.4",
     "symfony/http-kernel": "^7.3",
     "symfony/property-access": "^7.3",
     "symfony/routing": "^7.3",
@@ -57,9 +58,9 @@
     "tourze/doctrine-resolve-target-entity-bundle": "1.*",
     "tourze/phpunit-base": "1.*",
     "tourze/phpunit-doctrine-entity": "1.*",
-    "tourze/phpunit-symfony-kernel-test": "1.0.*",
-    "tourze/phpunit-symfony-unit-test": "1.*",
-    "tourze/phpunit-symfony-web-test": "1.*"
+    "tourze/phpunit-symfony-kernel-test": "2.0.*",
+    "tourze/phpunit-symfony-unit-test": "2.0.*",
+    "tourze/phpunit-symfony-web-test": "2.0.*"
   },
   "autoload": {
     "psr-4": {

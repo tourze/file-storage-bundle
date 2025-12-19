@@ -6,7 +6,7 @@ namespace Tourze\FileStorageBundle\Tests\Entity;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\InMemoryUser;
 use Tourze\FileStorageBundle\Entity\File;
 use Tourze\PHPUnitDoctrineEntity\AbstractEntityTestCase;
 
@@ -106,7 +106,7 @@ final class FileTest extends AbstractEntityTestCase
     {
         $this->assertNull($this->file->getUser());
 
-        $user = $this->createMock(UserInterface::class);
+        $user = new InMemoryUser('testuser', 'password', ['ROLE_USER']);
         $this->file->setUser($user);
         $this->assertSame($user, $this->file->getUser());
 
@@ -118,7 +118,7 @@ final class FileTest extends AbstractEntityTestCase
     {
         $this->assertTrue($this->file->isAnonymous());
 
-        $user = $this->createMock(UserInterface::class);
+        $user = new InMemoryUser('testuser', 'password', ['ROLE_USER']);
         $this->file->setUser($user);
         $this->assertFalse($this->file->isAnonymous());
 

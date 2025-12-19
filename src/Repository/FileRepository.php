@@ -15,7 +15,7 @@ use Tourze\PHPUnitSymfonyKernelTest\Attribute\AsRepository;
  * @extends ServiceEntityRepository<File>
  */
 #[AsRepository(entityClass: File::class)]
-class FileRepository extends ServiceEntityRepository
+final class FileRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

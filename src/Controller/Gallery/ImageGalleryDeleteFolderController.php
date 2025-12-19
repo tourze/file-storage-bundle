@@ -22,7 +22,7 @@ final class ImageGalleryDeleteFolderController extends AbstractController
     }
 
     #[Route(path: '/gallery/api/folders/{id}', name: 'file_gallery_api_delete_folder', methods: ['DELETE'], requirements: ['id' => '-?\d+'])]
-    public function __invoke(int $id, #[CurrentUser] ?UserInterface $user): JsonResponse
+    public function __invoke(string $id, #[CurrentUser] ?UserInterface $user): JsonResponse
     {
         try {
             $folder = $this->folderRepository->find($id);

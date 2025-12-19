@@ -24,6 +24,7 @@ Symfony Bundle for file upload and storage management with Flysystem integration
 - [File Type Management](#file-type-management)
 - [Console Commands](#console-commands)
   - [Clean Anonymous Files](#clean-anonymous-files)
+  - [Delete Files](#delete-files)
   - [Cron Job Example](#cron-job-example)
 - [Advanced Storage Configuration](#advanced-storage-configuration)
   - [Custom Storage Adapter](#custom-storage-adapter)
@@ -215,6 +216,30 @@ bin/console file-storage:clean-anonymous --dry-run
 bin/console file-storage:clean-anonymous --dry-run -v
 ```
 
+### Delete Files
+
+Delete all files in a specified directory recursively:
+
+```bash
+# Delete all files in a directory (requires confirmation)
+bin/console file-storage:delete path/to/directory
+
+# Skip confirmation prompt
+bin/console file-storage:delete path/to/directory --force
+
+# Also delete empty directories
+bin/console file-storage:delete path/to/directory --include-dirs
+
+# Dry run - show what would be deleted without actually deleting
+bin/console file-storage:delete path/to/directory --dry-run
+
+# Verbose output showing file details
+bin/console file-storage:delete path/to/directory --dry-run -v
+
+# Combined: delete files and directories with force
+bin/console file-storage:delete path/to/directory -f -d
+```
+
 #### Cron Job Example
 
 Add to your crontab to run every hour:
@@ -272,18 +297,6 @@ class S3FilesystemFactory
         return new Filesystem($adapter);
     }
 }
-```
-
-Then override the factory service in your application:
-
-```yaml
-# config/services.yaml
-services:
-    Tourze\FileStorageBundle\Factory\FilesystemFactory:
-        class: App\Factory\S3FilesystemFactory
-        arguments:
-            $s3Client: '@aws.s3.client'
-            $bucket: '%env(S3_BUCKET)%'
 ```
 
 ## Entity Structure

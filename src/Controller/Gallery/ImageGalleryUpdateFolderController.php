@@ -23,7 +23,7 @@ final class ImageGalleryUpdateFolderController extends AbstractController
     }
 
     #[Route(path: '/gallery/api/folders/{id}', name: 'file_gallery_api_update_folder', methods: ['PUT'], requirements: ['id' => '-?\d+'])]
-    public function __invoke(int $id, Request $request, #[CurrentUser] ?UserInterface $user): JsonResponse
+    public function __invoke(string $id, Request $request, #[CurrentUser] ?UserInterface $user): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 

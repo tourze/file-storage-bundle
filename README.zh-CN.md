@@ -24,6 +24,7 @@ Symfony 文件上传和存储管理 Bundle，集成了 Flysystem。
 - [文件类型管理](#文件类型管理)
 - [控制台命令](#控制台命令)
   - [清理匿名文件](#清理匿名文件)
+  - [删除文件](#删除文件)
   - [定时任务示例](#定时任务示例)
   - [文件统计](#文件统计)
 - [服务使用](#服务使用)
@@ -191,6 +192,30 @@ bin/console file-storage:clean-anonymous --dry-run
 bin/console file-storage:clean-anonymous --dry-run -v
 ```
 
+#### 删除文件
+
+递归删除指定目录下的所有文件：
+
+```bash
+# 删除目录中的所有文件（需要确认）
+bin/console file-storage:delete path/to/directory
+
+# 跳过确认提示
+bin/console file-storage:delete path/to/directory --force
+
+# 同时删除空目录
+bin/console file-storage:delete path/to/directory --include-dirs
+
+# 试运行 - 显示将要删除的内容但不实际删除
+bin/console file-storage:delete path/to/directory --dry-run
+
+# 详细输出显示文件细节
+bin/console file-storage:delete path/to/directory --dry-run -v
+
+# 组合使用：强制删除文件和目录
+bin/console file-storage:delete path/to/directory -f -d
+```
+
 #### 定时任务示例
 
 添加到 crontab 以每小时运行一次：
@@ -290,18 +315,6 @@ class S3FilesystemFactory
         return new Filesystem($adapter);
     }
 }
-```
-
-然后在应用程序中覆盖工厂服务：
-
-```yaml
-# config/services.yaml
-services:
-    Tourze\FileStorageBundle\Factory\FilesystemFactory:
-        class: App\Factory\S3FilesystemFactory
-        arguments:
-            $s3Client: '@aws.s3.client'
-            $bucket: '%env(S3_BUCKET)%'
 ```
 
 ## 实体结构

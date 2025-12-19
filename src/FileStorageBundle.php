@@ -17,6 +17,7 @@ use Tourze\DoctrineUserBundle\DoctrineUserBundle;
 use Tourze\EasyAdminImagePreviewFieldBundle\EasyAdminImagePreviewFieldBundle;
 use Tourze\EasyAdminMenuBundle\EasyAdminMenuBundle;
 use Tourze\FileStorageBundle\DependencyInjection\Compiler\SecurityFirewallCompilerPass;
+use Tourze\FlysystemBundle\FlysystemBundle;
 use Tourze\RoutingAutoLoaderBundle\RoutingAutoLoaderBundle;
 use Tourze\Symfony\CronJob\CronJobBundle;
 
@@ -25,6 +26,7 @@ class FileStorageBundle extends Bundle implements BundleDependencyInterface
     public static function getBundleDependencies(): array
     {
         return [
+            FlysystemBundle::class => ['all' => true],
             DoctrineBundle::class => ['all' => true],
             DoctrineIpBundle::class => ['all' => true],
             DoctrineTimestampBundle::class => ['all' => true],

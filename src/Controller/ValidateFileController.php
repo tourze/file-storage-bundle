@@ -20,7 +20,7 @@ final class ValidateFileController extends AbstractController
     }
 
     #[Route(path: '/file/{id}/validate', name: 'file_validate', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function __invoke(int $id, Request $request): Response
+    public function __invoke(string $id, Request $request): Response
     {
         $file = $this->fileService->getFile($id);
 

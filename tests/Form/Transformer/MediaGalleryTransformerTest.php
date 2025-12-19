@@ -30,7 +30,6 @@ final class MediaGalleryTransformerTest extends TestCase
 
     public function testTransformNonArrayValue(): void
     {
-        // @phpstan-ignore-next-line - Testing defensive behavior with invalid input
         $result = $this->transformer->transform('invalid');
         self::assertSame('[]', $result);
     }
@@ -56,7 +55,6 @@ final class MediaGalleryTransformerTest extends TestCase
 
     public function testReverseTransformNonStringValue(): void
     {
-        // @phpstan-ignore-next-line - Testing defensive behavior with invalid input
         $result = $this->transformer->reverseTransform(123);
         self::assertSame([], $result);
     }
@@ -104,7 +102,6 @@ final class MediaGalleryTransformerTest extends TestCase
         $this->expectExceptionMessage('Failed to encode media gallery data');
 
         try {
-            // @phpstan-ignore-next-line - Testing error handling with non-JSON-encodable data
             $this->transformer->transform($invalidData);
         } finally {
             // 确保资源被正确关闭

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tourze\FileStorageBundle\Command;
 
+use ChrisUllyott\FileSize;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,7 +18,7 @@ use Tourze\FileStorageBundle\Service\FileService;
     name: self::NAME,
     description: 'Clean up anonymous files older than specified hours',
 )]
-class CleanAnonymousFilesCommand extends Command
+final class CleanAnonymousFilesCommand extends Command
 {
     public const NAME = 'file-storage:clean-anonymous';
 
@@ -100,7 +101,7 @@ class CleanAnonymousFilesCommand extends Command
                     '- %s (created: %s, size: %s)',
                     $file->getOriginalName(),
                     $file->getCreateTime()?->format('Y-m-d H:i:s') ?? 'Unknown',
-                    $this->formatBytes($file->getFileSize() ?? 0)
+                    (new FileSize($file->getFileSize() ?? 0))->asAuto()
                 ));
             }
         }
@@ -123,16 +124,5 @@ class CleanAnonymousFilesCommand extends Command
 
             return Command::FAILURE;
         }
-    }
-
-    private function formatBytes(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes > 0 ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-        $bytes /= pow(1024, $pow);
-
-        return round($bytes, 2) . ' ' . $units[(int) $pow];
     }
 }

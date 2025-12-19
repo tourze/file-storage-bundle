@@ -84,7 +84,7 @@ final class ImageGalleryUploadFileController extends AbstractController
 
     private function validateAndGetFolder(Request $request): mixed
     {
-        $folderId = $request->get('folderId');
+        $folderId = $request->request->get('folderId') ?? $request->query->get('folderId');
         if (null === $folderId || '' === $folderId || !is_numeric($folderId)) {
             return $this->json([
                 'success' => false,
